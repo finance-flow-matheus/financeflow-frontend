@@ -1,0 +1,5 @@
+{
+  "name": "FinanceFlow Multi-Currency",
+  "description": "A comprehensive personal finance management application supporting BRL and EUR accounts, featuring manual currency exchange, transaction tracking, and interactive dashboards.",
+  "requestFramePermissions": []
+}

@@ -1,24 +1,23 @@
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   LayoutDashboard, 
   Wallet, 
   ArrowLeftRight, 
   ListTodo, 
-  History, 
-  PieChart,
+  History,
   Menu,
   X,
-  CreditCard,
-  Target,
-  CircleDollarSign,
-  Layers
+  Layers,
+  LogOut
 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { AccountsView } from './components/AccountsView';
 import { TransactionsView } from './components/TransactionsView';
 import { ExchangeView } from './components/ExchangeView';
 import { CategoriesView } from './components/CategoriesView';
+import { AuthScreen } from './components/AuthScreen';
+import { ResetPassword } from './components/ResetPassword';
 import { useFinanceData } from './hooks/useFinanceData';
 
 const Logo: React.FC<{ size?: 'sm' | 'lg' }> = ({ size = 'lg' }) => (
@@ -32,16 +31,69 @@ const Logo: React.FC<{ size?: 'sm' | 'lg' }> = ({ size = 'lg' }) => (
     </div>
     <div className="flex flex-col leading-tight">
       <span className={`${size === 'lg' ? 'text-xl font-black' : 'text-lg font-bold'} text-white tracking-tight`}>Finance<span className="text-indigo-400">Flow</span></span>
-      <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-[0.2em]">Asset Pro</span>
+      <span className="text-[10px] font-bold text-indigo-300 uppercase tracking-[0.2em]">Multi-Currency</span>
     </div>
   </div>
 );
 
 const App: React.FC = () => {
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [user, setUser] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'dashboard' | 'accounts' | 'transactions' | 'exchange' | 'entities'>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
+  const [isResetPassword, setIsResetPassword] = useState(false);
   
+  useEffect(() => {
+    // Check if it's a password reset page
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('token')) {
+      setIsResetPassword(true);
+      return;
+    }
+
+    const token = localStorage.getItem('ff_token');
+    const savedUser = localStorage.getItem('ff_user');
+    if (token && savedUser) {
+      setIsAuthenticated(true);
+      setUser(JSON.parse(savedUser));
+    }
+  }, []);
+
+  const handleLogin = (token: string, userData: any) => {
+    setIsAuthenticated(true);
+    setUser(userData);
+  };
+
+  const handleLogout = () => {
+    localStorage.removeItem('ff_token');
+    localStorage.removeItem('ff_user');
+    setIsAuthenticated(false);
+    setUser(null);
+  };
+
   const financeData = useFinanceData();
+
+  if (isResetPassword) {
+    return <ResetPassword onSuccess={() => {
+      setIsResetPassword(false);
+      window.history.replaceState({}, '', '/');
+    }} />;
+  }
+
+  if (!isAuthenticated) {
+    return <AuthScreen onLogin={handleLogin} />;
+  }
+
+  if (financeData.loading) {
+    return (
+      <div className="min-h-screen bg-slate-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-16 w-16 border-b-2 border-indigo-600 mx-auto mb-4"></div>
+          <p className="text-slate-600">Carregando seus dados...</p>
+        </div>
+      </div>
+    );
+  }
 
   const navItems = [
     { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -83,58 +135,56 @@ const App: React.FC = () => {
                 setIsSidebarOpen(false);
               }}
               className={`
-                w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-300
+                w-full flex items-center gap-4 px-5 py-4 rounded-2xl transition-all duration-200 text-left group
                 ${activeTab === item.id 
-                  ? 'bg-indigo-600 text-white shadow-xl shadow-indigo-600/20 translate-x-1' 
+                  ? 'bg-gradient-to-r from-indigo-600 to-indigo-500 text-white shadow-lg shadow-indigo-500/30' 
                   : 'hover:bg-slate-900 hover:text-white'}
               `}
             >
-              <item.icon className={`w-5 h-5 transition-colors ${activeTab === item.id ? 'text-white' : 'text-slate-500'}`} />
-              <span className="font-bold tracking-tight">{item.label}</span>
+              <item.icon className={`w-5 h-5 ${activeTab === item.id ? 'text-white' : 'text-slate-400 group-hover:text-indigo-400'}`} />
+              <span className="font-semibold">{item.label}</span>
             </button>
           ))}
         </nav>
 
-        <div className="absolute bottom-10 left-0 w-full px-8">
-          <div className="p-6 bg-slate-900/50 rounded-3xl border border-slate-800/50 backdrop-blur-md">
-            <p className="text-[10px] font-black text-slate-500 mb-3 uppercase tracking-[0.2em]">Gestão Multi-Moeda</p>
-            <div className="flex justify-between items-center text-sm font-bold text-white">
-              <div className="flex gap-2 items-center">
-                 <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-[11px] text-indigo-400 border border-indigo-500/20 font-black">R$</div>
-                 <span className="text-slate-400 font-medium">BRL</span>
+        {/* User Info & Logout */}
+        <div className="absolute bottom-0 left-0 w-full p-6 border-t border-slate-900">
+          <div className="bg-slate-900 rounded-2xl p-4">
+            <div className="flex items-center gap-3 mb-3">
+              <div className="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white font-bold">
+                {user?.name?.charAt(0).toUpperCase()}
               </div>
-              <div className="w-px h-4 bg-slate-800 mx-2"></div>
-              <div className="flex gap-2 items-center">
-                 <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center text-[11px] text-indigo-400 border border-indigo-500/20 font-black">€</div>
-                 <span className="text-slate-400 font-medium">EUR</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-white font-semibold text-sm truncate">{user?.name}</p>
+                <p className="text-slate-400 text-xs truncate">{user?.email}</p>
               </div>
             </div>
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-slate-800 hover:bg-red-600 text-slate-300 hover:text-white rounded-xl transition-colors text-sm font-medium"
+            >
+              <LogOut className="w-4 h-4" />
+              <span>Sair</span>
+            </button>
           </div>
         </div>
       </aside>
 
       {/* Main Content */}
-      <main className="flex-1 overflow-y-auto h-screen p-4 md:p-10 lg:p-14 bg-[#fcfdfe]">
-        <div className="max-w-7xl mx-auto space-y-10">
-          <header className="flex flex-col md:flex-row md:items-center justify-between gap-6">
-            <div className="animate-in slide-in-from-left duration-500">
-              <h1 className="text-3xl md:text-4xl font-black text-slate-900 tracking-tight">
+      <main className="flex-1 overflow-y-auto h-screen p-4 md:p-8 lg:p-10">
+        <div className="max-w-7xl mx-auto space-y-8">
+          <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-bold text-slate-900">
                 {navItems.find(i => i.id === activeTab)?.label}
               </h1>
-              <p className="text-slate-500 font-medium mt-1">
-                Visualizando sua saúde financeira em múltiplas frentes.
+              <p className="text-slate-500">
+                Gerencie suas finanças em Real e Euro com facilidade.
               </p>
-            </div>
-            
-            <div className="flex items-center gap-3">
-               <div className="px-5 py-2.5 bg-white rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-                 <div className="w-2 h-2 rounded-full bg-indigo-500 animate-pulse"></div>
-                 <span className="text-xs font-bold text-slate-600 uppercase tracking-widest">Live Updates</span>
-               </div>
             </div>
           </header>
 
-          <div className="animate-in fade-in zoom-in-95 duration-700">
+          <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             {activeTab === 'dashboard' && <Dashboard data={financeData} />}
             {activeTab === 'accounts' && <AccountsView data={financeData} />}
             {activeTab === 'transactions' && <TransactionsView data={financeData} />}
@@ -147,7 +197,7 @@ const App: React.FC = () => {
       {/* Backdrop for mobile */}
       {isSidebarOpen && (
         <div 
-          className="fixed inset-0 bg-slate-950/60 backdrop-blur-md z-30 md:hidden transition-opacity duration-300"
+          className="fixed inset-0 bg-slate-900/50 backdrop-blur-sm z-30 md:hidden transition-opacity duration-300"
           onClick={() => setIsSidebarOpen(false)}
         />
       )}

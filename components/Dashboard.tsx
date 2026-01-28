@@ -33,19 +33,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     const currentYear = new Date().getFullYear();
     const map = new Map<string, number>();
     
+    console.log('Expense by category - transactions:', transactions.length);
+    console.log('Expense by category - categories:', categories);
+    
     transactions.forEach((t: any) => {
       const d = new Date(t.date);
       if (t.type === TransactionType.EXPENSE && d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
+        console.log('Expense transaction:', t);
         map.set(t.categoryId, (map.get(t.categoryId) || 0) + t.amount);
       }
     });
 
-    return Array.from(map.entries())
+    const result = Array.from(map.entries())
       .map(([id, value]) => ({
         name: categories.find((c: any) => c.id === id)?.name || 'Outros',
         value
       }))
       .filter(item => item.value > 0);
+    
+    console.log('Expense by category result:', result);
+    return result;
   }, [transactions, categories]);
 
   // Chart Data: Income by Source
@@ -54,19 +61,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     const currentYear = new Date().getFullYear();
     const map = new Map<string, number>();
     
+    console.log('Income by source - transactions:', transactions.length);
+    console.log('Income by source - incomeSources:', incomeSources);
+    
     transactions.forEach((t: any) => {
       const d = new Date(t.date);
       if (t.type === TransactionType.INCOME && d.getMonth() === currentMonth && d.getFullYear() === currentYear && t.incomeSourceId) {
+        console.log('Income transaction:', t);
         map.set(t.incomeSourceId, (map.get(t.incomeSourceId) || 0) + t.amount);
       }
     });
 
-    return Array.from(map.entries())
+    const result = Array.from(map.entries())
       .map(([id, value]) => ({
         name: incomeSources.find((s: any) => s.id === id)?.name || 'Outros',
         value
       }))
       .filter(item => item.value > 0);
+    
+    console.log('Income by source result:', result);
+    return result;
   }, [transactions, incomeSources]);
 
   // Calculate Balance Evolution (Last 6 months)

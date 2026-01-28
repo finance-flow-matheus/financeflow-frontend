@@ -108,7 +108,7 @@ export const useFinanceData = () => {
       const filteredAccounts = accounts.filter(filterFn);
       const accIds = filteredAccounts.map(a => a.id);
       
-      const totalBalance = filteredAccounts.reduce((acc, curr) => acc + curr.balance, 0);
+      const totalBalance = filteredAccounts.reduce((acc, curr) => acc + (curr.balance || 0), 0);
       
       const monthlyTransactions = transactions.filter(t => {
         const d = new Date(t.date);
@@ -117,20 +117,36 @@ export const useFinanceData = () => {
 
       const monthlyIncome = monthlyTransactions
         .filter(t => t.type === TransactionType.INCOME)
-        .reduce((acc, curr) => acc + curr.amount, 0);
+        .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
       const monthlyExpense = monthlyTransactions
         .filter(t => t.type === TransactionType.EXPENSE)
-        .reduce((acc, curr) => acc + curr.amount, 0);
+        .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
-      return { totalBalance, monthlyIncome, monthlyExpense };
+      console.log('Stats calculation:', {
+        filteredAccounts: filteredAccounts.length,
+        accIds,
+        totalBalance,
+        monthlyTransactions: monthlyTransactions.length,
+        monthlyIncome,
+        monthlyExpense
+      });
+
+      return { 
+        totalBalance: totalBalance || 0, 
+        monthlyIncome: monthlyIncome || 0, 
+        monthlyExpense: monthlyExpense || 0 
+      };
     };
 
-    return {
+    const result = {
       brl: calculateStats(a => a.currency === Currency.BRL && !a.isInvestment),
       eur: calculateStats(a => a.currency === Currency.EUR && !a.isInvestment),
       investment: calculateStats(a => !!a.isInvestment)
     };
+
+    console.log('Final stats:', result);
+    return result;
   }, [accounts, transactions]);
 
   // Actions

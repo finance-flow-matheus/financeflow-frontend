@@ -30,48 +30,101 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   // Chart Data: Expense by Category
   const expenseByCategory = useMemo(() => {
     const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
     const map = new Map<string, number>();
     
     transactions.forEach((t: any) => {
       const d = new Date(t.date);
-      if (t.type === TransactionType.EXPENSE && d.getMonth() === currentMonth) {
+      if (t.type === TransactionType.EXPENSE && d.getMonth() === currentMonth && d.getFullYear() === currentYear) {
         map.set(t.categoryId, (map.get(t.categoryId) || 0) + t.amount);
       }
     });
 
-    return Array.from(map.entries()).map(([id, value]) => ({
-      name: categories.find((c: any) => c.id === id)?.name || 'Outros',
-      value
-    }));
+    return Array.from(map.entries())
+      .map(([id, value]) => ({
+        name: categories.find((c: any) => c.id === id)?.name || 'Outros',
+        value
+      }))
+      .filter(item => item.value > 0);
   }, [transactions, categories]);
 
   // Chart Data: Income by Source
   const incomeBySource = useMemo(() => {
     const currentMonth = new Date().getMonth();
+    const currentYear = new Date().getFullYear();
     const map = new Map<string, number>();
     
     transactions.forEach((t: any) => {
       const d = new Date(t.date);
-      if (t.type === TransactionType.INCOME && d.getMonth() === currentMonth && t.incomeSourceId) {
+      if (t.type === TransactionType.INCOME && d.getMonth() === currentMonth && d.getFullYear() === currentYear && t.incomeSourceId) {
         map.set(t.incomeSourceId, (map.get(t.incomeSourceId) || 0) + t.amount);
       }
     });
 
-    return Array.from(map.entries()).map(([id, value]) => ({
-      name: incomeSources.find((s: any) => s.id === id)?.name || 'Outros',
-      value
-    }));
+    return Array.from(map.entries())
+      .map(([id, value]) => ({
+        name: incomeSources.find((s: any) => s.id === id)?.name || 'Outros',
+        value
+      }))
+      .filter(item => item.value > 0);
   }, [transactions, incomeSources]);
 
-  // Mock data for Balance Evolution (Last 6 months)
-  const balanceEvolution = [
-    { name: 'Jan', BRL: 8000, EUR: 400, Invest: 20000 },
-    { name: 'Fev', BRL: 9200, EUR: 450, Invest: 21000 },
-    { name: 'Mar', BRL: 8700, EUR: 420, Invest: 22000 },
-    { name: 'Abr', BRL: 9500, EUR: 480, Invest: 23500 },
-    { name: 'Mai', BRL: 10200, EUR: 510, Invest: 24200 },
-    { name: 'Jun', BRL: 10000, EUR: 500, Invest: 25000 },
-  ];
+  // Calculate Balance Evolution (Last 6 months)
+  const balanceEvolution = useMemo(() => {
+    const months = ['Jan', 'Fev', 'Mar', 'Abr', 'Mai', 'Jun', 'Jul', 'Ago', 'Set', 'Out', 'Nov', 'Dez'];
+    const now = new Date();
+    const result = [];
+
+    for (let i = 5; i >= 0; i--) {
+      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const month = date.getMonth();
+      const year = date.getFullYear();
+
+      // Calculate cumulative balance up to this month
+      const txUpToMonth = transactions.filter((t: any) => {
+        const txDate = new Date(t.date);
+        return txDate <= new Date(year, month + 1, 0); // Last day of month
+      });
+
+      let brlBalance = 0;
+      let eurBalance = 0;
+
+      // Get initial balances from accounts
+      accounts.forEach((acc: Account) => {
+        if (acc.currency === Currency.BRL && !acc.isInvestment) {
+          brlBalance += acc.balance;
+        } else if (acc.currency === Currency.EUR && !acc.isInvestment) {
+          eurBalance += acc.balance;
+        }
+      });
+
+      // Adjust by removing future transactions
+      const futureTx = transactions.filter((t: any) => {
+        const txDate = new Date(t.date);
+        return txDate > new Date(year, month + 1, 0);
+      });
+
+      futureTx.forEach((t: any) => {
+        const acc = accounts.find((a: Account) => a.id === t.accountId);
+        if (!acc || acc.isInvestment) return;
+
+        const change = t.type === TransactionType.INCOME ? -t.amount : t.amount;
+        if (acc.currency === Currency.BRL) {
+          brlBalance += change;
+        } else if (acc.currency === Currency.EUR) {
+          eurBalance += change;
+        }
+      });
+
+      result.push({
+        name: months[month],
+        BRL: Math.max(0, brlBalance),
+        EUR: Math.max(0, eurBalance)
+      });
+    }
+
+    return result;
+  }, [transactions, accounts]);
 
   const StatCard = ({ title, balance, income, expense, currency, color, icon: Icon = DollarSign }: any) => (
     <div className={`bg-white rounded-3xl p-6 shadow-sm border-l-8 ${color} transition-all hover:shadow-md`}>

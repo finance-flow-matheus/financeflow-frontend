@@ -5,7 +5,6 @@ import { Currency } from '../types';
 
 export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
   const { accounts, exchangeOperations, registerExchange } = data;
-  const [isBrlToEur, setIsBrlToEur] = useState(true);
   const [formData, setFormData] = useState({
     sourceAccountId: '',
     sourceAmount: 0,
@@ -14,25 +13,12 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
     date: new Date().toISOString().split('T')[0]
   });
 
-  const brlAccounts = accounts.filter((a: any) => a.currency === Currency.BRL);
-  const eurAccounts = accounts.filter((a: any) => a.currency === Currency.EUR);
-
-  const sourceAccounts = isBrlToEur ? brlAccounts : eurAccounts;
-  const destinationAccounts = isBrlToEur ? eurAccounts : brlAccounts;
-
-  const sourceCurrency = isBrlToEur ? Currency.BRL : Currency.EUR;
-  const destinationCurrency = isBrlToEur ? Currency.EUR : Currency.BRL;
-
-  const toggleDirection = () => {
-    setIsBrlToEur(!isBrlToEur);
-    setFormData({
-      ...formData,
-      sourceAccountId: '',
-      destinationAccountId: '',
-      sourceAmount: 0,
-      destinationAmount: 0
-    });
-  };
+  // Get selected account currencies
+  const sourceAccount = accounts.find((a: any) => a.id === formData.sourceAccountId);
+  const destinationAccount = accounts.find((a: any) => a.id === formData.destinationAccountId);
+  
+  const sourceCurrency = sourceAccount?.currency || 'BRL';
+  const destinationCurrency = destinationAccount?.currency || 'BRL';
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -57,22 +43,14 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
           <Info className="w-5 h-5" />
         </div>
         <div>
-          <h4 className="font-bold text-indigo-900 mb-1">Câmbio Inteligente</h4>
+          <h4 className="font-bold text-indigo-900 mb-1">Transferências e Câmbio</h4>
           <p className="text-sm text-indigo-700/80 leading-relaxed">
-            Registre operações de câmbio manual entre suas contas. Os saldos serão atualizados automaticamente com base nos valores informados, sem conversões automáticas.
+            Transfira valores entre quaisquer contas ou registre operações de câmbio manual. Os saldos serão atualizados automaticamente com base nos valores informados, sem conversões automáticas.
           </p>
         </div>
       </div>
 
-      <div className="flex justify-center -mb-4 relative z-20">
-        <button 
-          onClick={toggleDirection}
-          className="bg-indigo-600 text-white p-4 rounded-full shadow-xl shadow-indigo-600/30 hover:scale-110 active:scale-95 transition-all flex items-center gap-2 group border-4 border-slate-50"
-        >
-          <ArrowLeftRight className="w-6 h-6 group-hover:rotate-180 transition-transform duration-500" />
-          <span className="font-bold text-sm px-2">Inverter Sentido</span>
-        </button>
-      </div>
+
 
       <form onSubmit={handleSubmit} className="bg-white p-10 pt-14 rounded-[3rem] shadow-sm border border-slate-100 relative overflow-hidden">
         <div className="absolute top-0 right-0 p-8 text-slate-100 opacity-20">
@@ -94,8 +72,8 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
                   value={formData.sourceAccountId}
                   onChange={e => setFormData({...formData, sourceAccountId: e.target.value})}
                 >
-                  <option value="">Selecione a conta {sourceCurrency}</option>
-                  {sourceAccounts.map((a: any) => <option key={a.id} value={a.id}>{a.name} ({sourceCurrency})</option>)}
+                  <option value="">Selecione a conta de origem</option>
+                  {accounts.map((a: any) => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
                 </select>
               </div>
               <div>
@@ -127,8 +105,8 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
                   value={formData.destinationAccountId}
                   onChange={e => setFormData({...formData, destinationAccountId: e.target.value})}
                 >
-                  <option value="">Selecione a conta {destinationCurrency}</option>
-                  {destinationAccounts.map((a: any) => <option key={a.id} value={a.id}>{a.name} ({destinationCurrency})</option>)}
+                  <option value="">Selecione a conta de destino</option>
+                  {accounts.filter((a: any) => a.id !== formData.sourceAccountId).map((a: any) => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
                 </select>
               </div>
               <div>

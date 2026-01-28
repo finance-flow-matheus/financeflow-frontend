@@ -277,21 +277,44 @@ export const useFinanceData = () => {
 
   const registerExchange = async (op: Omit<ExchangeOperation, 'id'>) => {
     try {
-      await fetch(`${API_URL}/exchanges`, {
+      // Get account details to determine currencies
+      const fromAccount = accounts.find(a => a.id === op.sourceAccountId);
+      const toAccount = accounts.find(a => a.id === op.destinationAccountId);
+      
+      if (!fromAccount || !toAccount) {
+        console.error('Accounts not found');
+        return;
+      }
+
+      // Calculate exchange rate
+      const exchangeRate = op.destinationAmount / op.sourceAmount;
+
+      const response = await fetch(`${API_URL}/exchanges`, {
         method: 'POST',
         headers: getAuthHeaders(),
         body: JSON.stringify({
-          source_account_id: parseInt(op.sourceAccountId),
-          source_amount: op.sourceAmount,
-          destination_account_id: parseInt(op.destinationAccountId),
-          destination_amount: op.destinationAmount,
-          date: op.date,
-          notes: ''
+          fromAccountId: op.sourceAccountId,
+          toAccountId: op.destinationAccountId,
+          fromAmount: op.sourceAmount,
+          toAmount: op.destinationAmount,
+          fromCurrency: fromAccount.currency,
+          toCurrency: toAccount.currency,
+          exchangeRate: exchangeRate,
+          date: op.date
         })
       });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Error from server:', error);
+        alert('Erro ao registrar operação: ' + (error.error || 'Erro desconhecido'));
+        return;
+      }
+      
       await fetchData();
     } catch (error) {
       console.error('Error registering exchange:', error);
+      alert('Erro ao registrar operação de câmbio/transferência');
     }
   };
 

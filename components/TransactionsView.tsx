@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { Plus, Search, Filter, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Repeat } from 'lucide-react';
+import { Plus, Search, Filter, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Repeat, Trash2 } from 'lucide-react';
 import { TransactionType, Currency } from '../types';
 
 export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
-  const { transactions, accounts, categories, incomeSources, addTransaction } = data;
+  const { transactions, accounts, categories, incomeSources, addTransaction, deleteTransaction } = data;
   const [isAdding, setIsAdding] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
   const [formData, setFormData] = useState({
     description: '',
@@ -17,9 +18,11 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
     isFixed: false
   });
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    addTransaction({ ...formData, type });
+    if (isLoading) return;
+    setIsLoading(true);
+    await addTransaction({ ...formData, type });
     setFormData({
       description: '',
       amount: 0,
@@ -30,6 +33,13 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
       isFixed: false
     });
     setIsAdding(false);
+    setIsLoading(false);
+  };
+
+  const handleDelete = async (id: string) => {
+    if (confirm('Tem certeza que deseja deletar este lançamento?')) {
+      await deleteTransaction(id);
+    }
   };
 
   return (
@@ -153,7 +163,9 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
             </div>
           </div>
           <div className="mt-8 flex gap-4">
-            <button type="submit" className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700">Salvar Lançamento</button>
+            <button type="submit" disabled={isLoading} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
+              {isLoading ? 'Salvando...' : 'Salvar Lançamento'}
+            </button>
             <button type="button" onClick={() => setIsAdding(false)} className="bg-slate-100 text-slate-600 px-8 py-3 rounded-xl font-bold hover:bg-slate-200">Cancelar</button>
           </div>
         </form>
@@ -168,6 +180,7 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
               <th className="px-6 py-4">Categoria</th>
               <th className="px-6 py-4">Conta</th>
               <th className="px-6 py-4 text-right">Valor</th>
+              <th className="px-6 py-4 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -205,11 +218,20 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
                       {acc?.currency === Currency.BRL ? 'R$' : '€'} {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
                   </td>
+                  <td className="px-6 py-4 text-right">
+                    <button
+                      onClick={() => handleDelete(t.id)}
+                      className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-rose-50 rounded-lg text-rose-600 hover:text-rose-700"
+                      title="Deletar lançamento"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </td>
                 </tr>
               );
             }) : (
               <tr>
-                <td colSpan={5} className="px-6 py-12 text-center text-slate-400 italic">Nenhum lançamento encontrado.</td>
+                <td colSpan={6} className="px-6 py-12 text-center text-slate-400 italic">Nenhum lançamento encontrado.</td>
               </tr>
             )}
           </tbody>

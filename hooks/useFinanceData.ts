@@ -231,9 +231,9 @@ export const useFinanceData = () => {
           amount: t.amount,
           description: t.description,
           date: t.date,
-          account_id: parseInt(t.accountId),
-          category_id: t.categoryId ? parseInt(t.categoryId) : null,
-          income_source_id: t.incomeSourceId ? parseInt(t.incomeSourceId) : null
+          accountId: parseInt(t.accountId),
+          categoryId: t.categoryId ? parseInt(t.categoryId) : null,
+          incomeSourceId: t.incomeSourceId ? parseInt(t.incomeSourceId) : null
         })
       });
       await fetchData();
@@ -252,9 +252,9 @@ export const useFinanceData = () => {
           amount: t.amount,
           description: t.description,
           date: t.date,
-          account_id: parseInt(t.accountId),
-          category_id: t.categoryId ? parseInt(t.categoryId) : null,
-          income_source_id: t.incomeSourceId ? parseInt(t.incomeSourceId) : null
+          accountId: parseInt(t.accountId),
+          categoryId: t.categoryId ? parseInt(t.categoryId) : null,
+          incomeSourceId: t.incomeSourceId ? parseInt(t.incomeSourceId) : null
         })
       });
       await fetchData();

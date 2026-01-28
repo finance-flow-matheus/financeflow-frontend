@@ -7,6 +7,7 @@ import {
 } from 'recharts';
 import { DashboardStats, Currency, TransactionType, Account } from '../types';
 import { TrendingUp, TrendingDown, DollarSign, Euro, Wallet, Tag, Briefcase, Landmark } from 'lucide-react';
+import { formatCurrency } from '../utils';
 
 interface DashboardProps {
   data: any; // Result from useFinanceData
@@ -82,7 +83,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       </div>
       <div className="mb-6">
         <span className="text-4xl font-bold text-slate-900">
-          {currency === Currency.BRL ? 'R$' : (currency === Currency.EUR ? '€' : '')} {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          {formatCurrency(balance, currency)}
         </span>
       </div>
       <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-100">
@@ -92,7 +93,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
             <span>Entradas</span>
           </div>
           <p className="text-lg font-bold text-slate-800">
-            {currency === Currency.BRL ? 'R$' : (currency === Currency.EUR ? '€' : '')} {income.toLocaleString('pt-BR')}
+            {formatCurrency(income, currency)}
           </p>
         </div>
         <div>
@@ -101,7 +102,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
             <span>Saídas</span>
           </div>
           <p className="text-lg font-bold text-slate-800">
-            {currency === Currency.BRL ? 'R$' : (currency === Currency.EUR ? '€' : '')} {expense.toLocaleString('pt-BR')}
+            {formatCurrency(expense, currency)}
           </p>
         </div>
       </div>

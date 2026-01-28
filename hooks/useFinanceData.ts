@@ -74,9 +74,9 @@ export const useFinanceData = () => {
         amount: t.amount,
         description: t.description || '',
         date: t.date,
-        accountId: t.account_id.toString(),
-        categoryId: t.category_id?.toString(),
-        incomeSourceId: t.income_source_id?.toString()
+        accountId: t.account_id ? t.account_id.toString() : '',
+        categoryId: t.category_id ? t.category_id.toString() : undefined,
+        incomeSourceId: t.income_source_id ? t.income_source_id.toString() : undefined
       })));
 
       setExchangeOperations(exchangesData.map((e: any) => ({

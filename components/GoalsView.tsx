@@ -13,6 +13,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ token }) => {
     name: '',
     targetAmount: '',
     currentAmount: '',
+    currency: 'BRL' as 'BRL' | 'EUR',
     deadline: '',
     category: '',
   });
@@ -42,6 +43,7 @@ const GoalsView: React.FC<GoalsViewProps> = ({ token }) => {
       name: formData.name,
       targetAmount: parseFloat(formData.targetAmount),
       currentAmount: parseFloat(formData.currentAmount) || 0,
+      currency: formData.currency,
       deadline: formData.deadline || null,
       category: formData.category || null,
     };
@@ -219,6 +221,20 @@ const GoalsView: React.FC<GoalsViewProps> = ({ token }) => {
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">
+                  Moeda *
+                </label>
+                <select
+                  value={formData.currency}
+                  onChange={(e) => setFormData({ ...formData, currency: e.target.value as 'BRL' | 'EUR' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="BRL">🇧🇷 Real (BRL)</option>
+                  <option value="EUR">🇪🇺 Euro (EUR)</option>
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">
                   Prazo
                 </label>
                 <input
@@ -298,10 +314,10 @@ const GoalsView: React.FC<GoalsViewProps> = ({ token }) => {
 
                 <div className="flex justify-between text-sm">
                   <span className="text-gray-600">
-                    R$ {goal.currentAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {goal.currency === 'EUR' ? '€' : 'R$'} {goal.currentAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                   <span className="font-semibold text-gray-800">
-                    R$ {goal.targetAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {goal.currency === 'EUR' ? '€' : 'R$'} {goal.targetAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                   </span>
                 </div>
 

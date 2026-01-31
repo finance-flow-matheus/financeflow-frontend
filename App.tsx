@@ -28,6 +28,7 @@ import GoalsView from './components/GoalsView';
 import InvestmentsView from './components/InvestmentsView';
 import BalanceSheetView from './components/BalanceSheetView';
 import BudgetView from './components/BudgetView';
+import AnalyticsDashboard from './components/AnalyticsDashboard';
 import { useFinanceData } from './hooks/useFinanceData';
 
 const Logo: React.FC<{ size?: 'sm' | 'lg' }> = ({ size = 'lg' }) => (
@@ -215,7 +216,7 @@ const App: React.FC = () => {
           </header>
 
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
-            {activeTab === 'dashboard' && <Dashboard data={financeData} />}
+            {activeTab === 'dashboard' && <AnalyticsDashboard token={token} />}
             {activeTab === 'metrics' && <MetricsView token={token} />}
             {activeTab === 'goals' && <GoalsView token={token} />}
             {activeTab === 'investments' && <InvestmentsView token={token} />}

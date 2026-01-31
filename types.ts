@@ -77,6 +77,7 @@ export interface FinancialGoal {
   name: string;
   targetAmount: number;
   currentAmount: number;
+  currency: Currency;
   deadline?: string;
   category?: string;
   status: 'in_progress' | 'completed' | 'cancelled';
@@ -128,6 +129,7 @@ export interface Budget {
   month: number;
   year: number;
   limitAmount: number;
+  currency: Currency;
   spent?: number;
   remaining?: number;
   percentage?: number;

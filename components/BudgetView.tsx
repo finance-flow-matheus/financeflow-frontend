@@ -14,6 +14,7 @@ const BudgetView: React.FC<BudgetViewProps> = ({ token }) => {
   const [formData, setFormData] = useState({
     categoryId: '',
     limitAmount: '',
+    currency: 'BRL' as 'BRL' | 'EUR',
   });
 
   useEffect(() => {
@@ -66,6 +67,7 @@ const BudgetView: React.FC<BudgetViewProps> = ({ token }) => {
           month: selectedMonth,
           year: selectedYear,
           limitAmount: parseFloat(formData.limitAmount),
+          currency: formData.currency,
         }),
       });
       
@@ -80,6 +82,7 @@ const BudgetView: React.FC<BudgetViewProps> = ({ token }) => {
     setFormData({
       categoryId: '',
       limitAmount: '',
+      currency: 'BRL',
     });
     setShowForm(false);
   };
@@ -194,7 +197,7 @@ const BudgetView: React.FC<BudgetViewProps> = ({ token }) => {
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Limite (R$) *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Limite *</label>
                 <input
                   type="number"
                   step="0.01"
@@ -204,6 +207,18 @@ const BudgetView: React.FC<BudgetViewProps> = ({ token }) => {
                   required
                   placeholder="0.00"
                 />
+              </div>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Moeda *</label>
+                <select
+                  value={formData.currency}
+                  onChange={(e) => setFormData({ ...formData, currency: e.target.value as 'BRL' | 'EUR' })}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  required
+                >
+                  <option value="BRL">🇧🇷 Real (BRL)</option>
+                  <option value="EUR">🇪🇺 Euro (EUR)</option>
+                </select>
               </div>
             </div>
             <div className="flex gap-2">

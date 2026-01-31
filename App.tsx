@@ -9,7 +9,12 @@ import {
   Menu,
   X,
   Layers,
-  LogOut
+  LogOut,
+  TrendingUp,
+  Target,
+  PieChart,
+  DollarSign,
+  BarChart3
 } from 'lucide-react';
 import { Dashboard } from './components/Dashboard';
 import { AccountsView } from './components/AccountsView';
@@ -18,6 +23,11 @@ import { ExchangeView } from './components/ExchangeView';
 import { CategoriesView } from './components/CategoriesView';
 import { AuthScreen } from './components/AuthScreen';
 import { ResetPassword } from './components/ResetPassword';
+import MetricsView from './components/MetricsView';
+import GoalsView from './components/GoalsView';
+import InvestmentsView from './components/InvestmentsView';
+import BalanceSheetView from './components/BalanceSheetView';
+import BudgetView from './components/BudgetView';
 import { useFinanceData } from './hooks/useFinanceData';
 
 const Logo: React.FC<{ size?: 'sm' | 'lg' }> = ({ size = 'lg' }) => (
@@ -36,12 +46,15 @@ const Logo: React.FC<{ size?: 'sm' | 'lg' }> = ({ size = 'lg' }) => (
   </div>
 );
 
+type TabType = 'dashboard' | 'metrics' | 'goals' | 'investments' | 'balance' | 'budget' | 'accounts' | 'transactions' | 'exchange' | 'entities';
+
 const App: React.FC = () => {
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [user, setUser] = useState<any>(null);
-  const [activeTab, setActiveTab] = useState<'dashboard' | 'accounts' | 'transactions' | 'exchange' | 'entities'>('dashboard');
+  const [activeTab, setActiveTab] = useState<TabType>('dashboard');
   const [isSidebarOpen, setIsSidebarOpen] = useState(false);
   const [isResetPassword, setIsResetPassword] = useState(false);
+  const [token, setToken] = useState<string>('');
   
   useEffect(() => {
     // Check if it's a password reset page
@@ -51,17 +64,19 @@ const App: React.FC = () => {
       return;
     }
 
-    const token = localStorage.getItem('ff_token');
+    const savedToken = localStorage.getItem('ff_token');
     const savedUser = localStorage.getItem('ff_user');
-    if (token && savedUser) {
+    if (savedToken && savedUser) {
       setIsAuthenticated(true);
       setUser(JSON.parse(savedUser));
+      setToken(savedToken);
     }
   }, []);
 
-  const handleLogin = (token: string, userData: any) => {
+  const handleLogin = (newToken: string, userData: any) => {
     setIsAuthenticated(true);
     setUser(userData);
+    setToken(newToken);
   };
 
   const handleLogout = () => {
@@ -69,6 +84,7 @@ const App: React.FC = () => {
     localStorage.removeItem('ff_user');
     setIsAuthenticated(false);
     setUser(null);
+    setToken('');
   };
 
   const financeData = useFinanceData();
@@ -96,11 +112,16 @@ const App: React.FC = () => {
   }
 
   const navItems = [
-    { id: 'dashboard', label: 'Dashboard', icon: LayoutDashboard },
-    { id: 'accounts', label: 'Contas', icon: Wallet },
-    { id: 'transactions', label: 'Lançamentos', icon: History },
-    { id: 'exchange', label: 'Câmbio', icon: ArrowLeftRight },
-    { id: 'entities', label: 'Categorias & Fontes', icon: ListTodo },
+    { id: 'dashboard' as TabType, label: 'Dashboard', icon: LayoutDashboard },
+    { id: 'metrics' as TabType, label: 'Indicadores', icon: BarChart3 },
+    { id: 'goals' as TabType, label: 'Metas', icon: Target },
+    { id: 'investments' as TabType, label: 'Investimentos', icon: TrendingUp },
+    { id: 'balance' as TabType, label: 'Balanço Patrimonial', icon: PieChart },
+    { id: 'budget' as TabType, label: 'Orçamento', icon: DollarSign },
+    { id: 'accounts' as TabType, label: 'Contas', icon: Wallet },
+    { id: 'transactions' as TabType, label: 'Lançamentos', icon: History },
+    { id: 'exchange' as TabType, label: 'Câmbio', icon: ArrowLeftRight },
+    { id: 'entities' as TabType, label: 'Categorias & Fontes', icon: ListTodo },
   ];
 
   return (
@@ -131,7 +152,7 @@ const App: React.FC = () => {
             <button
               key={item.id}
               onClick={() => {
-                setActiveTab(item.id as any);
+                setActiveTab(item.id);
                 setIsSidebarOpen(false);
               }}
               className={`
@@ -179,13 +200,27 @@ const App: React.FC = () => {
                 {navItems.find(i => i.id === activeTab)?.label}
               </h1>
               <p className="text-slate-500">
-                Gerencie suas finanças em Real e Euro com facilidade.
+                {activeTab === 'metrics' && 'Acompanhe seus indicadores financeiros'}
+                {activeTab === 'goals' && 'Defina e acompanhe suas metas financeiras'}
+                {activeTab === 'investments' && 'Gerencie sua carteira de investimentos'}
+                {activeTab === 'balance' && 'Visualize seus ativos e passivos'}
+                {activeTab === 'budget' && 'Controle seus gastos por categoria'}
+                {activeTab === 'dashboard' && 'Gerencie suas finanças em Real e Euro com facilidade.'}
+                {activeTab === 'accounts' && 'Gerencie suas contas bancárias'}
+                {activeTab === 'transactions' && 'Registre suas receitas e despesas'}
+                {activeTab === 'exchange' && 'Realize operações de câmbio'}
+                {activeTab === 'entities' && 'Organize suas categorias e fontes de renda'}
               </p>
             </div>
           </header>
 
           <div className="animate-in fade-in slide-in-from-bottom-2 duration-500">
             {activeTab === 'dashboard' && <Dashboard data={financeData} />}
+            {activeTab === 'metrics' && <MetricsView token={token} />}
+            {activeTab === 'goals' && <GoalsView token={token} />}
+            {activeTab === 'investments' && <InvestmentsView token={token} />}
+            {activeTab === 'balance' && <BalanceSheetView token={token} />}
+            {activeTab === 'budget' && <BudgetView token={token} />}
             {activeTab === 'accounts' && <AccountsView data={financeData} />}
             {activeTab === 'transactions' && <TransactionsView data={financeData} />}
             {activeTab === 'exchange' && <ExchangeView data={financeData} />}

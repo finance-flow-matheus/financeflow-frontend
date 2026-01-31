@@ -1,10 +1,11 @@
 
 import React, { useState } from 'react';
-import { ArrowRight, RefreshCcw, Info, ArrowLeftRight, Landmark } from 'lucide-react';
+import { ArrowRight, RefreshCcw, Info, ArrowLeftRight, Landmark, Edit2, Trash2 } from 'lucide-react';
 import { Currency } from '../types';
 
 export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
-  const { accounts, exchangeOperations, registerExchange } = data;
+  const { accounts, exchangeOperations, registerExchange, updateExchange, deleteExchange } = data;
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     sourceAccountId: '',
     sourceAmount: 0,
@@ -26,7 +27,12 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
       alert("Preencha todos os campos corretamente.");
       return;
     }
-    registerExchange(formData);
+    if (editingId) {
+      updateExchange(editingId, formData);
+      setEditingId(null);
+    } else {
+      registerExchange(formData);
+    }
     setFormData({
       sourceAccountId: '',
       sourceAmount: 0,
@@ -133,13 +139,33 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
           </div>
         </div>
 
-        <button 
-          type="submit"
-          className="w-full mt-10 bg-slate-900 text-white py-5 rounded-3xl font-bold text-lg shadow-xl shadow-slate-900/20 hover:bg-black transition-all flex items-center justify-center gap-3 group"
-        >
-          Confirmar Operação de Câmbio
-          <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-        </button>
+        <div className="mt-10 flex gap-3">
+          <button 
+            type="submit"
+            className="flex-1 bg-slate-900 text-white py-5 rounded-3xl font-bold text-lg shadow-xl shadow-slate-900/20 hover:bg-black transition-all flex items-center justify-center gap-3 group"
+          >
+            {editingId ? 'Atualizar Operação' : 'Confirmar Operação de Câmbio'}
+            <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+          </button>
+          {editingId && (
+            <button 
+              type="button"
+              onClick={() => {
+                setEditingId(null);
+                setFormData({
+                  sourceAccountId: '',
+                  sourceAmount: 0,
+                  destinationAccountId: '',
+                  destinationAmount: 0,
+                  date: new Date().toISOString().split('T')[0]
+                });
+              }}
+              className="px-8 bg-slate-100 text-slate-600 py-5 rounded-3xl font-bold text-lg hover:bg-slate-200 transition-all"
+            >
+              Cancelar
+            </button>
+          )}
+        </div>
       </form>
 
       {/* History */}
@@ -156,6 +182,7 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
               <th className="px-10 py-5 text-center"></th>
               <th className="px-10 py-5">Entrada</th>
               <th className="px-10 py-5 text-right">Taxa Efetiva</th>
+              <th className="px-10 py-5 text-right">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
@@ -193,6 +220,35 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
                     <span className="text-xs font-black text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
                       {rateText}
                     </span>
+                  </td>
+                  <td className="px-10 py-6 text-right">
+                    <div className="flex gap-1 justify-end">
+                      <button 
+                        onClick={() => {
+                          setEditingId(op.id);
+                          setFormData({
+                            sourceAccountId: op.sourceAccountId,
+                            sourceAmount: op.sourceAmount,
+                            destinationAccountId: op.destinationAccountId,
+                            destinationAmount: op.destinationAmount,
+                            date: op.date
+                          });
+                        }}
+                        className="p-2 text-slate-300 hover:text-indigo-500 transition-colors"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => {
+                          if (confirm('Deseja realmente deletar esta operação?')) {
+                            deleteExchange(op.id);
+                          }
+                        }}
+                        className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

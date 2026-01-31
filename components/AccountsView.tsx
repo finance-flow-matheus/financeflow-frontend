@@ -1,11 +1,12 @@
 
 import React, { useState } from 'react';
-import { Plus, Trash2, Landmark, ShieldCheck } from 'lucide-react';
+import { Plus, Trash2, Landmark, ShieldCheck, Edit2 } from 'lucide-react';
 import { Currency } from '../types';
 
 export const AccountsView: React.FC<{ data: any }> = ({ data }) => {
-  const { accounts, addAccount, deleteAccount } = data;
+  const { accounts, addAccount, updateAccount, deleteAccount } = data;
   const [isAdding, setIsAdding] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({ name: '', currency: Currency.BRL, balance: 0, isInvestment: false });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -27,8 +28,18 @@ export const AccountsView: React.FC<{ data: any }> = ({ data }) => {
         </button>
       </div>
 
-      {isAdding && (
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 animate-in slide-in-from-top-2">
+      {(isAdding || editingId) && (
+        <form onSubmit={(e) => {
+          e.preventDefault();
+          if (editingId) {
+            updateAccount(editingId, formData);
+            setEditingId(null);
+          } else {
+            addAccount(formData);
+            setIsAdding(false);
+          }
+          setFormData({ name: '', currency: Currency.BRL, balance: 0, isInvestment: false });
+        }} className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 animate-in slide-in-from-top-2">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-2">
               <label className="block text-sm font-semibold text-slate-700 mb-2">Nome do Banco/Conta</label>
@@ -74,8 +85,8 @@ export const AccountsView: React.FC<{ data: any }> = ({ data }) => {
             <label htmlFor="isInvestment" className="text-sm font-medium text-slate-700">Esta conta é uma Reserva / Investimento</label>
           </div>
           <div className="mt-8 flex gap-3">
-            <button type="submit" className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium">Salvar</button>
-            <button type="button" onClick={() => setIsAdding(false)} className="bg-slate-100 text-slate-600 px-6 py-2 rounded-xl font-medium">Cancelar</button>
+            <button type="submit" className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium">{editingId ? 'Atualizar' : 'Salvar'}</button>
+            <button type="button" onClick={() => { setIsAdding(false); setEditingId(null); }} className="bg-slate-100 text-slate-600 px-6 py-2 rounded-xl font-medium">Cancelar</button>
           </div>
         </form>
       )}
@@ -97,12 +108,24 @@ export const AccountsView: React.FC<{ data: any }> = ({ data }) => {
             <p className="text-2xl font-bold text-slate-800">
               {acc.currency === Currency.BRL ? 'R$' : '€'} {acc.balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
             </p>
-            <button 
-              onClick={() => deleteAccount(acc.id)}
-              className="absolute top-6 right-6 p-2 text-slate-300 hover:text-rose-500 transition-colors opacity-0 group-hover:opacity-100"
-            >
-              <Trash2 className="w-5 h-5" />
-            </button>
+            <div className="absolute top-6 right-6 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+              <button 
+                onClick={() => {
+                  setEditingId(acc.id);
+                  setFormData({ name: acc.name, currency: acc.currency, balance: acc.balance, isInvestment: acc.isInvestment });
+                  setIsAdding(false);
+                }}
+                className="p-2 text-slate-300 hover:text-indigo-500 transition-colors"
+              >
+                <Edit2 className="w-5 h-5" />
+              </button>
+              <button 
+                onClick={() => deleteAccount(acc.id)}
+                className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
+              >
+                <Trash2 className="w-5 h-5" />
+              </button>
+            </div>
           </div>
         ))}
       </div>

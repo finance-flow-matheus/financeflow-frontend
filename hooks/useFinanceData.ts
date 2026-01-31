@@ -81,10 +81,10 @@ export const useFinanceData = () => {
 
       setExchangeOperations(exchangesData.map((e: any) => ({
         id: e.id.toString(),
-        sourceAccountId: e.source_account_id.toString(),
-        sourceAmount: parseFloat(e.source_amount) || 0,
-        destinationAccountId: e.destination_account_id.toString(),
-        destinationAmount: parseFloat(e.destination_amount) || 0,
+        sourceAccountId: (e.from_account_id || e.source_account_id).toString(),
+        sourceAmount: parseFloat(e.from_amount || e.source_amount) || 0,
+        destinationAccountId: (e.to_account_id || e.destination_account_id).toString(),
+        destinationAmount: parseFloat(e.to_amount || e.destination_amount) || 0,
         date: e.date
       })));
 
@@ -115,13 +115,30 @@ export const useFinanceData = () => {
         return accIds.includes(t.accountId) && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       });
 
-      const monthlyIncome = monthlyTransactions
+      let monthlyIncome = monthlyTransactions
         .filter(t => t.type === TransactionType.INCOME)
         .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
-      const monthlyExpense = monthlyTransactions
+      let monthlyExpense = monthlyTransactions
         .filter(t => t.type === TransactionType.EXPENSE)
         .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+
+      // Add exchange operations to income/expense
+      const monthlyExchanges = exchangeOperations.filter(e => {
+        const d = new Date(e.date);
+        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
+      });
+
+      monthlyExchanges.forEach(e => {
+        // If this account is the source (money leaving), count as expense
+        if (accIds.includes(e.sourceAccountId)) {
+          monthlyExpense += e.sourceAmount || 0;
+        }
+        // If this account is the destination (money entering), count as income
+        if (accIds.includes(e.destinationAccountId)) {
+          monthlyIncome += e.destinationAmount || 0;
+        }
+      });
 
       return { 
         totalBalance: totalBalance || 0, 
@@ -135,7 +152,7 @@ export const useFinanceData = () => {
       eur: calculateStats(a => a.currency === Currency.EUR && !a.isInvestment),
       investment: calculateStats(a => !!a.isInvestment)
     };
-  }, [accounts, transactions]);
+  }, [accounts, transactions, exchangeOperations]);
 
   // Actions
   const addAccount = async (acc: Omit<Account, 'id'>) => {
@@ -322,6 +339,109 @@ export const useFinanceData = () => {
     }
   };
 
+  const updateAccount = async (id: string, acc: Partial<Account>) => {
+    try {
+      await fetch(`${API_URL}/accounts/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: acc.name,
+          currency: acc.currency,
+          type: acc.isInvestment ? 'investment' : 'checking'
+        })
+      });
+      await fetchData();
+    } catch (error) {
+      console.error('Error updating account:', error);
+    }
+  };
+
+  const updateCategory = async (id: string, cat: Partial<Category>) => {
+    try {
+      await fetch(`${API_URL}/categories/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: cat.name,
+          type: cat.type === TransactionType.INCOME ? 'income' : 'expense',
+          color: '#6366f1'
+        })
+      });
+      await fetchData();
+    } catch (error) {
+      console.error('Error updating category:', error);
+    }
+  };
+
+  const updateIncomeSource = async (id: string, source: Partial<IncomeSource>) => {
+    try {
+      await fetch(`${API_URL}/income-sources/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          name: source.name,
+          description: ''
+        })
+      });
+      await fetchData();
+    } catch (error) {
+      console.error('Error updating income source:', error);
+    }
+  };
+
+  const updateExchange = async (id: string, op: Omit<ExchangeOperation, 'id'>) => {
+    try {
+      const fromAccount = accounts.find(a => a.id === op.sourceAccountId);
+      const toAccount = accounts.find(a => a.id === op.destinationAccountId);
+      
+      if (!fromAccount || !toAccount) {
+        console.error('Accounts not found');
+        return;
+      }
+
+      const exchangeRate = op.destinationAmount / op.sourceAmount;
+
+      const response = await fetch(`${API_URL}/exchanges/${id}`, {
+        method: 'PUT',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          fromAccountId: op.sourceAccountId,
+          toAccountId: op.destinationAccountId,
+          fromAmount: op.sourceAmount,
+          toAmount: op.destinationAmount,
+          fromCurrency: fromAccount.currency,
+          toCurrency: toAccount.currency,
+          exchangeRate: exchangeRate,
+          date: op.date
+        })
+      });
+      
+      if (!response.ok) {
+        const error = await response.json();
+        console.error('Error from server:', error);
+        alert('Erro ao atualizar operação: ' + (error.error || 'Erro desconhecido'));
+        return;
+      }
+      
+      await fetchData();
+    } catch (error) {
+      console.error('Error updating exchange:', error);
+      alert('Erro ao atualizar operação de câmbio/transferência');
+    }
+  };
+
+  const deleteExchange = async (id: string) => {
+    try {
+      await fetch(`${API_URL}/exchanges/${id}`, {
+        method: 'DELETE',
+        headers: getAuthHeaders()
+      });
+      await fetchData();
+    } catch (error) {
+      console.error('Error deleting exchange:', error);
+    }
+  };
+
   return {
     accounts,
     categories,
@@ -331,14 +451,19 @@ export const useFinanceData = () => {
     stats,
     loading,
     addAccount,
+    updateAccount,
     deleteAccount,
     addCategory,
+    updateCategory,
     deleteCategory,
     addIncomeSource,
+    updateIncomeSource,
     deleteIncomeSource,
     addTransaction,
     updateTransaction,
     deleteTransaction,
-    registerExchange
+    registerExchange,
+    updateExchange,
+    deleteExchange
   };
 };

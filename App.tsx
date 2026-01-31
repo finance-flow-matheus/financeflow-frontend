@@ -126,7 +126,7 @@ const App: React.FC = () => {
           <Logo size="lg" />
         </div>
 
-        <nav className="mt-4 px-6 space-y-2">
+        <nav className="mt-4 md:mt-4 pt-6 md:pt-0 px-6 space-y-2 overflow-y-auto max-h-[calc(100vh-200px)]">
           {navItems.map((item) => (
             <button
               key={item.id}

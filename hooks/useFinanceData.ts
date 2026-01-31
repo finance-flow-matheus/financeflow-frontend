@@ -53,7 +53,7 @@ export const useFinanceData = () => {
         id: a.id.toString(),
         name: a.name,
         currency: a.currency as Currency,
-        balance: a.balance,
+        balance: parseFloat(a.balance) || 0,
         isInvestment: false
       })));
 
@@ -71,7 +71,7 @@ export const useFinanceData = () => {
       setTransactions(transactionsData.map((t: any) => ({
         id: t.id.toString(),
         type: t.type === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE,
-        amount: t.amount,
+        amount: parseFloat(t.amount) || 0,
         description: t.description || '',
         date: t.date,
         accountId: t.account_id ? t.account_id.toString() : '',
@@ -82,9 +82,9 @@ export const useFinanceData = () => {
       setExchangeOperations(exchangesData.map((e: any) => ({
         id: e.id.toString(),
         sourceAccountId: e.source_account_id.toString(),
-        sourceAmount: e.source_amount,
+        sourceAmount: parseFloat(e.source_amount) || 0,
         destinationAccountId: e.destination_account_id.toString(),
-        destinationAmount: e.destination_amount,
+        destinationAmount: parseFloat(e.destination_amount) || 0,
         date: e.date
       })));
 
@@ -123,15 +123,6 @@ export const useFinanceData = () => {
         .filter(t => t.type === TransactionType.EXPENSE)
         .reduce((acc, curr) => acc + (curr.amount || 0), 0);
 
-      console.log('Stats calculation:', {
-        filteredAccounts: filteredAccounts.length,
-        accIds,
-        totalBalance,
-        monthlyTransactions: monthlyTransactions.length,
-        monthlyIncome,
-        monthlyExpense
-      });
-
       return { 
         totalBalance: totalBalance || 0, 
         monthlyIncome: monthlyIncome || 0, 
@@ -139,14 +130,11 @@ export const useFinanceData = () => {
       };
     };
 
-    const result = {
+    return {
       brl: calculateStats(a => a.currency === Currency.BRL && !a.isInvestment),
       eur: calculateStats(a => a.currency === Currency.EUR && !a.isInvestment),
       investment: calculateStats(a => !!a.isInvestment)
     };
-
-    console.log('Final stats:', result);
-    return result;
   }, [accounts, transactions]);
 
   // Actions

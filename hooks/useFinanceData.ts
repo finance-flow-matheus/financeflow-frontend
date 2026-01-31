@@ -54,7 +54,8 @@ export const useFinanceData = () => {
         name: a.name,
         currency: a.currency as Currency,
         balance: parseFloat(a.balance) || 0,
-        isInvestment: false
+        isInvestment: a.type === 'investment' || false,
+        isEmergencyFund: a.is_emergency_fund || false
       })));
 
       setCategories(categoriesData.map((c: any) => ({
@@ -185,7 +186,9 @@ export const useFinanceData = () => {
         body: JSON.stringify({
           name: acc.name,
           currency: acc.currency,
-          balance: acc.balance
+          balance: acc.balance,
+          isInvestment: acc.isInvestment || false,
+          isEmergencyFund: acc.isEmergencyFund || false
         })
       });
       const data = await response.json();
@@ -369,7 +372,8 @@ export const useFinanceData = () => {
         body: JSON.stringify({
           name: acc.name,
           currency: acc.currency,
-          type: acc.isInvestment ? 'investment' : 'checking'
+          type: acc.isInvestment ? 'investment' : 'checking',
+          isEmergencyFund: acc.isEmergencyFund || false
         })
       });
       await fetchData();

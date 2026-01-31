@@ -96,7 +96,29 @@ export const useFinanceData = () => {
   };
 
   useEffect(() => {
-    fetchData();
+    const token = localStorage.getItem('ff_token');
+    if (token) {
+      fetchData();
+    }
+  }, []);
+
+  // Listen for token changes (login/logout)
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const token = localStorage.getItem('ff_token');
+      if (token) {
+        fetchData();
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    // Also listen for custom event for same-tab changes
+    window.addEventListener('ff_auth_change', handleStorageChange);
+
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('ff_auth_change', handleStorageChange);
+    };
   }, []);
 
   // Derived Statistics

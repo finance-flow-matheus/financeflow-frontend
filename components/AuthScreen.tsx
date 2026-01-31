@@ -43,6 +43,8 @@ export const AuthScreen: React.FC<AuthScreenProps> = ({ onLogin }) => {
 
       localStorage.setItem('ff_token', data.token);
       localStorage.setItem('ff_user', JSON.stringify(data.user));
+      // Dispatch custom event to trigger data fetch
+      window.dispatchEvent(new Event('ff_auth_change'));
       onLogin(data.token, data.user);
     } catch (err: any) {
       setError(err.message);

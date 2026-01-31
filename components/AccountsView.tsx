@@ -7,7 +7,7 @@ export const AccountsView: React.FC<{ data: any }> = ({ data }) => {
   const { accounts, addAccount, updateAccount, deleteAccount } = data;
   const [isAdding, setIsAdding] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
-  const [formData, setFormData] = useState({ name: '', currency: Currency.BRL, balance: 0, isInvestment: false });
+  const [formData, setFormData] = useState({ name: '', currency: Currency.BRL, balance: 0, isInvestment: false, isEmergencyFund: false });
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -38,7 +38,7 @@ export const AccountsView: React.FC<{ data: any }> = ({ data }) => {
             addAccount(formData);
             setIsAdding(false);
           }
-          setFormData({ name: '', currency: Currency.BRL, balance: 0, isInvestment: false });
+          setFormData({ name: '', currency: Currency.BRL, balance: 0, isInvestment: false, isEmergencyFund: false });
         }} className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 animate-in slide-in-from-top-2">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-2">
@@ -74,15 +74,29 @@ export const AccountsView: React.FC<{ data: any }> = ({ data }) => {
               />
             </div>
           </div>
-          <div className="mt-6 flex items-center gap-2">
-            <input 
-              type="checkbox" 
-              id="isInvestment"
-              className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-              checked={formData.isInvestment}
-              onChange={e => setFormData({ ...formData, isInvestment: e.target.checked })}
-            />
-            <label htmlFor="isInvestment" className="text-sm font-medium text-slate-700">Esta conta é uma Reserva / Investimento</label>
+          <div className="mt-6 space-y-3">
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="isInvestment"
+                className="w-5 h-5 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                checked={formData.isInvestment}
+                onChange={e => setFormData({ ...formData, isInvestment: e.target.checked })}
+              />
+              <label htmlFor="isInvestment" className="text-sm font-medium text-slate-700">Esta conta é uma Reserva / Investimento</label>
+            </div>
+            <div className="flex items-center gap-2">
+              <input 
+                type="checkbox" 
+                id="isEmergencyFund"
+                className="w-5 h-5 rounded border-slate-300 text-orange-600 focus:ring-orange-500"
+                checked={formData.isEmergencyFund}
+                onChange={e => setFormData({ ...formData, isEmergencyFund: e.target.checked })}
+              />
+              <label htmlFor="isEmergencyFund" className="text-sm font-medium text-slate-700">
+                🚨 Esta é minha <strong>Reserva de Emergência</strong>
+              </label>
+            </div>
           </div>
           <div className="mt-8 flex gap-3">
             <button type="submit" className="bg-indigo-600 text-white px-6 py-2 rounded-xl font-medium">{editingId ? 'Atualizar' : 'Salvar'}</button>
@@ -101,7 +115,9 @@ export const AccountsView: React.FC<{ data: any }> = ({ data }) => {
               <div>
                 <h4 className="font-bold text-slate-900">{acc.name}</h4>
                 <p className="text-sm text-slate-500">
-                  {acc.currency} {acc.isInvestment && <span className="ml-1 text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full uppercase font-bold tracking-tighter">Investimento</span>}
+                  {acc.currency} 
+                  {acc.isInvestment && <span className="ml-1 text-[10px] bg-indigo-100 text-indigo-600 px-1.5 py-0.5 rounded-full uppercase font-bold tracking-tighter">Investimento</span>}
+                  {acc.isEmergencyFund && <span className="ml-1 text-[10px] bg-orange-100 text-orange-600 px-1.5 py-0.5 rounded-full uppercase font-bold tracking-tighter">🚨 Reserva</span>}
                 </p>
               </div>
             </div>
@@ -112,7 +128,7 @@ export const AccountsView: React.FC<{ data: any }> = ({ data }) => {
               <button 
                 onClick={() => {
                   setEditingId(acc.id);
-                  setFormData({ name: acc.name, currency: acc.currency, balance: acc.balance, isInvestment: acc.isInvestment });
+                  setFormData({ name: acc.name, currency: acc.currency, balance: acc.balance, isInvestment: acc.isInvestment, isEmergencyFund: acc.isEmergencyFund || false });
                   setIsAdding(false);
                 }}
                 className="p-2 text-slate-300 hover:text-indigo-500 transition-colors"

@@ -15,6 +15,7 @@ export interface Account {
   currency: Currency;
   balance: number;
   isInvestment?: boolean;
+  isEmergencyFund?: boolean;
 }
 
 export interface Category {

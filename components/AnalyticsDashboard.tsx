@@ -250,6 +250,9 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ token }) => {
         <div className="bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-lg p-6 text-white">
           <div className="text-sm opacity-90 mb-1">Reserva de Emergência</div>
           <div className="text-3xl font-bold">{emergencyMonths} meses</div>
+          <div className="text-sm opacity-90 mt-1">
+            {selectedCurrency === 'EUR' ? '€' : 'R$'} {(metrics?.emergencyFund?.byCurrency?.[selectedCurrency] || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+          </div>
           <div className="text-xs opacity-75 mt-2">
             {emergencyMonths >= 6 ? '✅ Seguro' : emergencyMonths >= 3 ? '⚠️ Moderado' : '🚨 Crítico'}
           </div>

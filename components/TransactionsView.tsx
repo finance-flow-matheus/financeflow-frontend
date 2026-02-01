@@ -8,6 +8,7 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
   const [isAdding, setIsAdding] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
+  const [selectedCurrency, setSelectedCurrency] = useState<Currency | 'ALL'>('ALL');
   const [formData, setFormData] = useState({
     description: '',
     amount: 0,
@@ -53,13 +54,47 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
             className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
-        <button 
-          onClick={() => setIsAdding(!isAdding)}
-          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-600/20"
-        >
-          <Plus className="w-5 h-5" />
-          Novo Lançamento
-        </button>
+        <div className="flex items-center gap-3">
+          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
+            <button
+              onClick={() => setSelectedCurrency('ALL')}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                selectedCurrency === 'ALL'
+                  ? 'bg-white text-slate-900 shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              Todas
+            </button>
+            <button
+              onClick={() => setSelectedCurrency(Currency.BRL)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                selectedCurrency === Currency.BRL
+                  ? 'bg-green-500 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🇧🇷 BRL
+            </button>
+            <button
+              onClick={() => setSelectedCurrency(Currency.EUR)}
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+                selectedCurrency === Currency.EUR
+                  ? 'bg-blue-500 text-white shadow-sm'
+                  : 'text-slate-600 hover:text-slate-900'
+              }`}
+            >
+              🇪🇺 EUR
+            </button>
+          </div>
+          <button 
+            onClick={() => setIsAdding(!isAdding)}
+            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-600/20"
+          >
+            <Plus className="w-5 h-5" />
+            Novo Lançamento
+          </button>
+        </div>
       </div>
 
       {isAdding && (
@@ -184,7 +219,13 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {transactions.length > 0 ? transactions.map((t: any) => {
+            {transactions.length > 0 ? transactions
+              .filter((t: any) => {
+                if (selectedCurrency === 'ALL') return true;
+                const acc = accounts.find((a: any) => a.id === t.accountId);
+                return acc?.currency === selectedCurrency;
+              })
+              .map((t: any) => {
               const acc = accounts.find((a: any) => a.id === t.accountId);
               const cat = categories.find((c: any) => c.id === t.categoryId);
               return (

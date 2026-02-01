@@ -1,128 +1,69 @@
-import { useState, useEffect, useMemo } from 'react';
+
+import { useState, useEffect, useMemo, useCallback } from 'react';
+import { api } from '../services/api.ts';
 import { 
-  Account, 
-  Category, 
-  IncomeSource, 
-  Transaction, 
-  ExchangeOperation, 
-  Currency, 
-  TransactionType,
-  DashboardStats 
-} from '../types';
-
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3001/api';
-
-const getAuthHeaders = () => {
-  const token = localStorage.getItem('ff_token');
-  return {
-    'Content-Type': 'application/json',
-    'Authorization': `Bearer ${token}`
-  };
-};
+  Account, Category, IncomeSource, Transaction, ExchangeOperation, 
+  Currency, TransactionType, DashboardStats, Budget, Goal, Liability, Asset 
+} from '../types.ts';
 
 export const useFinanceData = () => {
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [accounts, setAccounts] = useState<Account[]>([]);
   const [categories, setCategories] = useState<Category[]>([]);
   const [incomeSources, setIncomeSources] = useState<IncomeSource[]>([]);
   const [transactions, setTransactions] = useState<Transaction[]>([]);
+  const [budgets, setBudgets] = useState<Budget[]>([]);
+  const [goals, setGoals] = useState<Goal[]>([]);
+  const [liabilities, setLiabilities] = useState<Liability[]>([]);
+  const [assets, setAssets] = useState<Asset[]>([]);
   const [exchangeOperations, setExchangeOperations] = useState<ExchangeOperation[]>([]);
-  const [loading, setLoading] = useState(true);
 
-  // Fetch data from API
-  const fetchData = async () => {
+  const loadData = useCallback(async () => {
     try {
       setLoading(true);
-      const headers = getAuthHeaders();
+      setError(null);
       
-      const [accountsRes, categoriesRes, sourcesRes, transactionsRes, exchangesRes] = await Promise.all([
-        fetch(`${API_URL}/accounts`, { headers }),
-        fetch(`${API_URL}/categories`, { headers }),
-        fetch(`${API_URL}/income-sources`, { headers }),
-        fetch(`${API_URL}/transactions`, { headers }),
-        fetch(`${API_URL}/exchanges`, { headers })
+      const [accs, cats, srcs, trans, bdgts, gls, exch, assts, liabs] = await Promise.all([
+        api.accounts.getAll(),
+        api.entities.getCategories(),
+        api.entities.getSources(),
+        api.transactions.getAll(),
+        api.budgets.getAll().catch(() => []), 
+        api.goals.getAll().catch(() => []),
+        api.exchange.getAll().catch(() => []),
+        api.assets.getAll().catch(() => []),
+        api.liabilities.getAll().catch(() => [])
       ]);
+      
+      setAccounts(accs);
+      setCategories(cats);
+      setIncomeSources(srcs);
+      setTransactions(trans);
+      setBudgets(bdgts);
+      setGoals(gls);
+      setExchangeOperations(exch);
+      setAssets(assts);
+      setLiabilities(liabs);
 
-      const accountsData = await accountsRes.json();
-      const categoriesData = await categoriesRes.json();
-      const sourcesData = await sourcesRes.json();
-      const transactionsData = await transactionsRes.json();
-      const exchangesData = await exchangesRes.json();
-
-      // Transform API data to frontend format
-      setAccounts(accountsData.map((a: any) => ({
-        id: a.id.toString(),
-        name: a.name,
-        currency: a.currency as Currency,
-        balance: parseFloat(a.balance) || 0,
-        isInvestment: a.type === 'investment' || false,
-        isEmergencyFund: a.is_emergency_fund || false
-      })));
-
-      setCategories(categoriesData.map((c: any) => ({
-        id: c.id.toString(),
-        name: c.name,
-        type: c.type === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE
-      })));
-
-      setIncomeSources(sourcesData.map((s: any) => ({
-        id: s.id.toString(),
-        name: s.name
-      })));
-
-      setTransactions(transactionsData.map((t: any) => ({
-        id: t.id.toString(),
-        type: t.type === 'income' ? TransactionType.INCOME : TransactionType.EXPENSE,
-        amount: parseFloat(t.amount) || 0,
-        description: t.description || '',
-        date: t.date,
-        accountId: t.account_id ? t.account_id.toString() : '',
-        categoryId: t.category_id ? t.category_id.toString() : undefined,
-        incomeSourceId: t.income_source_id ? t.income_source_id.toString() : undefined
-      })));
-
-      setExchangeOperations(exchangesData.map((e: any) => ({
-        id: e.id.toString(),
-        sourceAccountId: (e.from_account_id || e.source_account_id).toString(),
-        sourceAmount: parseFloat(e.from_amount || e.source_amount) || 0,
-        destinationAccountId: (e.to_account_id || e.destination_account_id).toString(),
-        destinationAmount: parseFloat(e.to_amount || e.destination_amount) || 0,
-        date: e.date
-      })));
-
-    } catch (error) {
-      console.error('Error fetching data:', error);
+    } catch (err: any) {
+      setError('Falha ao conectar com o servidor no Railway. Verifique sua conexão.');
+      console.error(err);
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const token = localStorage.getItem('ff_token');
     if (token) {
-      fetchData();
+      loadData();
+    } else {
+      setLoading(false);
     }
-  }, []);
+  }, [loadData]);
 
-  // Listen for token changes (login/logout)
-  useEffect(() => {
-    const handleStorageChange = () => {
-      const token = localStorage.getItem('ff_token');
-      if (token) {
-        fetchData();
-      }
-    };
-
-    window.addEventListener('storage', handleStorageChange);
-    // Also listen for custom event for same-tab changes
-    window.addEventListener('ff_auth_change', handleStorageChange);
-
-    return () => {
-      window.removeEventListener('storage', handleStorageChange);
-      window.removeEventListener('ff_auth_change', handleStorageChange);
-    };
-  }, []);
-
-  // Derived Statistics
   const stats = useMemo<DashboardStats>(() => {
     const currentMonth = new Date().getMonth();
     const currentYear = new Date().getFullYear();
@@ -130,44 +71,22 @@ export const useFinanceData = () => {
     const calculateStats = (filterFn: (a: Account) => boolean) => {
       const filteredAccounts = accounts.filter(filterFn);
       const accIds = filteredAccounts.map(a => a.id);
-      
-      const totalBalance = filteredAccounts.reduce((acc, curr) => acc + (curr.balance || 0), 0);
+      const totalBalance = filteredAccounts.reduce((acc, curr) => acc + curr.balance, 0);
       
       const monthlyTransactions = transactions.filter(t => {
         const d = new Date(t.date);
         return accIds.includes(t.accountId) && d.getMonth() === currentMonth && d.getFullYear() === currentYear;
       });
 
-      let monthlyIncome = monthlyTransactions
+      const monthlyIncome = monthlyTransactions
         .filter(t => t.type === TransactionType.INCOME)
-        .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+        .reduce((acc, curr) => acc + curr.amount, 0);
 
-      let monthlyExpense = monthlyTransactions
+      const monthlyExpense = monthlyTransactions
         .filter(t => t.type === TransactionType.EXPENSE)
-        .reduce((acc, curr) => acc + (curr.amount || 0), 0);
+        .reduce((acc, curr) => acc + curr.amount, 0);
 
-      // Add exchange operations to income/expense
-      const monthlyExchanges = exchangeOperations.filter(e => {
-        const d = new Date(e.date);
-        return d.getMonth() === currentMonth && d.getFullYear() === currentYear;
-      });
-
-      monthlyExchanges.forEach(e => {
-        // If this account is the source (money leaving), count as expense
-        if (accIds.includes(e.sourceAccountId)) {
-          monthlyExpense += e.sourceAmount || 0;
-        }
-        // If this account is the destination (money entering), count as income
-        if (accIds.includes(e.destinationAccountId)) {
-          monthlyIncome += e.destinationAmount || 0;
-        }
-      });
-
-      return { 
-        totalBalance: totalBalance || 0, 
-        monthlyIncome: monthlyIncome || 0, 
-        monthlyExpense: monthlyExpense || 0 
-      };
+      return { totalBalance, monthlyIncome, monthlyExpense };
     };
 
     return {
@@ -175,321 +94,137 @@ export const useFinanceData = () => {
       eur: calculateStats(a => a.currency === Currency.EUR && !a.isInvestment),
       investment: calculateStats(a => !!a.isInvestment)
     };
-  }, [accounts, transactions, exchangeOperations]);
+  }, [accounts, transactions]);
 
-  // Actions
+  // Accounts Mutations
   const addAccount = async (acc: Omit<Account, 'id'>) => {
-    try {
-      const response = await fetch(`${API_URL}/accounts`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: acc.name,
-          currency: acc.currency,
-          balance: acc.balance,
-          isInvestment: acc.isInvestment || false,
-          isEmergencyFund: acc.isEmergencyFund || false
-        })
-      });
-      const data = await response.json();
-      await fetchData();
-    } catch (error) {
-      console.error('Error adding account:', error);
-    }
+    await api.accounts.create(acc);
+    await loadData();
+  };
+
+  const updateAccount = async (id: string, updated: Partial<Account>) => {
+    await api.accounts.update(id, updated);
+    await loadData();
   };
 
   const deleteAccount = async (id: string) => {
-    try {
-      await fetch(`${API_URL}/accounts/${id}`, { 
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting account:', error);
-    }
+    await api.accounts.delete(id);
+    await loadData();
   };
 
-  const addCategory = async (cat: Omit<Category, 'id'>) => {
-    try {
-      await fetch(`${API_URL}/categories`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: cat.name,
-          type: cat.type === TransactionType.INCOME ? 'income' : 'expense',
-          color: '#3b82f6'
-        })
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error adding category:', error);
-    }
-  };
-
-  const deleteCategory = async (id: string) => {
-    try {
-      await fetch(`${API_URL}/categories/${id}`, { 
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting category:', error);
-    }
-  };
-
-  const addIncomeSource = async (src: Omit<IncomeSource, 'id'>) => {
-    try {
-      await fetch(`${API_URL}/income-sources`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: src.name,
-          description: ''
-        })
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error adding income source:', error);
-    }
-  };
-
-  const deleteIncomeSource = async (id: string) => {
-    try {
-      await fetch(`${API_URL}/income-sources/${id}`, { 
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting income source:', error);
-    }
-  };
-
+  // Transactions Mutations
   const addTransaction = async (t: Omit<Transaction, 'id'>) => {
-    try {
-      await fetch(`${API_URL}/transactions`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          type: t.type === TransactionType.INCOME ? 'income' : 'expense',
-          amount: t.amount,
-          description: t.description,
-          date: t.date,
-          accountId: parseInt(t.accountId),
-          categoryId: t.categoryId ? parseInt(t.categoryId) : null,
-          incomeSourceId: t.incomeSourceId ? parseInt(t.incomeSourceId) : null
-        })
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error adding transaction:', error);
-    }
+    await api.transactions.create(t);
+    await loadData();
   };
 
-  const updateTransaction = async (id: string, t: Omit<Transaction, 'id'>) => {
-    try {
-      await fetch(`${API_URL}/transactions/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          type: t.type === TransactionType.INCOME ? 'income' : 'expense',
-          amount: t.amount,
-          description: t.description,
-          date: t.date,
-          accountId: parseInt(t.accountId),
-          categoryId: t.categoryId ? parseInt(t.categoryId) : null,
-          incomeSourceId: t.incomeSourceId ? parseInt(t.incomeSourceId) : null
-        })
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating transaction:', error);
-    }
+  const updateTransaction = async (id: string, updated: Partial<Transaction>) => {
+    await api.transactions.update(id, updated);
+    await loadData();
   };
 
   const deleteTransaction = async (id: string) => {
-    try {
-      await fetch(`${API_URL}/transactions/${id}`, { 
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting transaction:', error);
-    }
+    await api.transactions.delete(id);
+    await loadData();
   };
 
+  // Budget & Goals Mutations
+  const addBudget = async (b: Omit<Budget, 'id'>) => {
+    await api.budgets.create(b);
+    await loadData();
+  };
+
+  const deleteBudget = async (id: string) => {
+    await api.budgets.delete(id);
+    await loadData();
+  };
+
+  const addGoal = async (g: Omit<Goal, 'id'>) => {
+    await api.goals.create(g);
+    await loadData();
+  };
+
+  const deleteGoal = async (id: string) => {
+    await api.goals.delete(id);
+    await loadData();
+  };
+
+  // Categories & Sources Mutations
+  const addCategory = async (c: Omit<Category, 'id'>) => {
+    await api.entities.createCategory(c);
+    await loadData();
+  };
+
+  const updateCategory = async (id: string, updated: Partial<Category>) => {
+    await api.entities.updateCategory(id, updated);
+    await loadData();
+  };
+
+  const deleteCategory = async (id: string) => {
+    await api.entities.deleteCategory(id);
+    await loadData();
+  };
+
+  const addIncomeSource = async (s: Omit<IncomeSource, 'id'>) => {
+    await api.entities.createSource(s);
+    await loadData();
+  };
+
+  const updateIncomeSource = async (id: string, updated: Partial<IncomeSource>) => {
+    await api.entities.updateSource(id, updated);
+    await loadData();
+  };
+
+  const deleteIncomeSource = async (id: string) => {
+    await api.entities.deleteSource(id);
+    await loadData();
+  };
+
+  // Exchange Mutations
   const registerExchange = async (op: Omit<ExchangeOperation, 'id'>) => {
-    try {
-      // Get account details to determine currencies
-      const fromAccount = accounts.find(a => a.id === op.sourceAccountId);
-      const toAccount = accounts.find(a => a.id === op.destinationAccountId);
-      
-      if (!fromAccount || !toAccount) {
-        console.error('Accounts not found');
-        return;
-      }
-
-      // Calculate exchange rate
-      const exchangeRate = op.destinationAmount / op.sourceAmount;
-
-      const response = await fetch(`${API_URL}/exchanges`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          fromAccountId: op.sourceAccountId,
-          toAccountId: op.destinationAccountId,
-          fromAmount: op.sourceAmount,
-          toAmount: op.destinationAmount,
-          fromCurrency: fromAccount.currency,
-          toCurrency: toAccount.currency,
-          exchangeRate: exchangeRate,
-          date: op.date
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Error from server:', error);
-        alert('Erro ao registrar operação: ' + (error.error || 'Erro desconhecido'));
-        return;
-      }
-      
-      await fetchData();
-    } catch (error) {
-      console.error('Error registering exchange:', error);
-      alert('Erro ao registrar operação de câmbio/transferência');
-    }
+    await api.exchange.create(op);
+    await loadData();
   };
 
-  const updateAccount = async (id: string, acc: Partial<Account>) => {
-    try {
-      await fetch(`${API_URL}/accounts/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: acc.name,
-          currency: acc.currency,
-          type: acc.isInvestment ? 'investment' : 'checking',
-          isEmergencyFund: acc.isEmergencyFund || false
-        })
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating account:', error);
-    }
+  // Assets & Liabilities Mutations
+  const addAsset = async (a: Omit<Asset, 'id'>) => {
+    await api.assets.create(a);
+    await loadData();
   };
 
-  const updateCategory = async (id: string, cat: Partial<Category>) => {
-    try {
-      await fetch(`${API_URL}/categories/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: cat.name,
-          type: cat.type === TransactionType.INCOME ? 'income' : 'expense',
-          color: '#6366f1'
-        })
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating category:', error);
-    }
+  const deleteAsset = async (id: string) => {
+    await api.assets.delete(id);
+    await loadData();
   };
 
-  const updateIncomeSource = async (id: string, source: Partial<IncomeSource>) => {
-    try {
-      await fetch(`${API_URL}/income-sources/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          name: source.name,
-          description: ''
-        })
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating income source:', error);
-    }
+  const addLiability = async (l: Omit<Liability, 'id'>) => {
+    await api.liabilities.create(l);
+    await loadData();
   };
 
-  const updateExchange = async (id: string, op: Omit<ExchangeOperation, 'id'>) => {
-    try {
-      const fromAccount = accounts.find(a => a.id === op.sourceAccountId);
-      const toAccount = accounts.find(a => a.id === op.destinationAccountId);
-      
-      if (!fromAccount || !toAccount) {
-        console.error('Accounts not found');
-        return;
-      }
-
-      const exchangeRate = op.destinationAmount / op.sourceAmount;
-
-      const response = await fetch(`${API_URL}/exchanges/${id}`, {
-        method: 'PUT',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          fromAccountId: op.sourceAccountId,
-          toAccountId: op.destinationAccountId,
-          fromAmount: op.sourceAmount,
-          toAmount: op.destinationAmount,
-          fromCurrency: fromAccount.currency,
-          toCurrency: toAccount.currency,
-          exchangeRate: exchangeRate,
-          date: op.date
-        })
-      });
-      
-      if (!response.ok) {
-        const error = await response.json();
-        console.error('Error from server:', error);
-        alert('Erro ao atualizar operação: ' + (error.error || 'Erro desconhecido'));
-        return;
-      }
-      
-      await fetchData();
-    } catch (error) {
-      console.error('Error updating exchange:', error);
-      alert('Erro ao atualizar operação de câmbio/transferência');
-    }
+  const deleteLiability = async (id: string) => {
+    await api.liabilities.delete(id);
+    await loadData();
   };
 
-  const deleteExchange = async (id: string) => {
-    try {
-      await fetch(`${API_URL}/exchanges/${id}`, {
-        method: 'DELETE',
-        headers: getAuthHeaders()
-      });
-      await fetchData();
-    } catch (error) {
-      console.error('Error deleting exchange:', error);
-    }
+  // Budget update
+  const updateBudget = async (id: string, updated: Partial<Budget>) => {
+    await api.budgets.update(id, updated);
+    await loadData();
   };
 
   return {
-    accounts,
-    categories,
-    incomeSources,
-    transactions,
-    exchangeOperations,
-    stats,
-    loading,
-    addAccount,
-    updateAccount,
-    deleteAccount,
-    addCategory,
-    updateCategory,
-    deleteCategory,
-    addIncomeSource,
-    updateIncomeSource,
-    deleteIncomeSource,
-    addTransaction,
-    updateTransaction,
-    deleteTransaction,
+    loading, error,
+    accounts, categories, incomeSources, transactions, budgets, goals, liabilities, assets, exchangeOperations, stats,
+    addAccount, updateAccount, deleteAccount,
+    addTransaction, updateTransaction, deleteTransaction,
+    addBudget, updateBudget, deleteBudget,
+    addGoal, deleteGoal,
+    addCategory, updateCategory, deleteCategory,
+    addIncomeSource, updateIncomeSource, deleteIncomeSource,
     registerExchange,
-    updateExchange,
-    deleteExchange
+    addAsset, deleteAsset,
+    addLiability, deleteLiability,
+    refresh: loadData
   };
 };

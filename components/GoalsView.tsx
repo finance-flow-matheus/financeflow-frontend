@@ -1,371 +1,310 @@
-import React, { useState, useEffect } from 'react';
-import { FinancialGoal } from '../types';
 
-interface GoalsViewProps {
-  token: string;
-}
+import React, { useState } from 'react';
+import { 
+  Plus, 
+  Trash2, 
+  Target, 
+  Plane, 
+  Home, 
+  Car, 
+  GraduationCap, 
+  ShieldAlert, 
+  MoreHorizontal,
+  Calendar,
+  TrendingUp,
+  CheckCircle2,
+  AlertCircle,
+  Coins
+} from 'lucide-react';
+import { Goal, GoalCategory, Account, Currency } from '../types';
 
-const GoalsView: React.FC<GoalsViewProps> = ({ token }) => {
-  const [goals, setGoals] = useState<FinancialGoal[]>([]);
-  const [showForm, setShowForm] = useState(false);
-  const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
+export const GoalsView: React.FC<{ data: any }> = ({ data }) => {
+  const { goals, accounts, addGoal, deleteGoal } = data;
+  const [isAdding, setIsAdding] = useState(false);
   const [formData, setFormData] = useState({
     name: '',
-    targetAmount: '',
-    currentAmount: '',
-    currency: 'BRL' as 'BRL' | 'EUR',
+    targetAmount: 0,
     deadline: '',
-    category: '',
+    accountId: '',
+    category: 'other' as GoalCategory
   });
 
-  useEffect(() => {
-    fetchGoals();
-  }, []);
-
-  const fetchGoals = async () => {
-    try {
-      const response = await fetch(`${import.meta.env.VITE_API_URL}/api/goals`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      const data = await response.json();
-      setGoals(data);
-    } catch (error) {
-      console.error('Erro ao buscar metas:', error);
-    }
-  };
-
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!formData.accountId || !formData.name || formData.targetAmount <= 0) return;
+    addGoal(formData);
+    setFormData({ name: '', targetAmount: 0, deadline: '', accountId: '', category: 'other' });
+    setIsAdding(false);
+  };
+
+  const getCategoryIcon = (cat: GoalCategory) => {
+    switch (cat) {
+      case 'travel': return <Plane className="w-5 h-5" />;
+      case 'house': return <Home className="w-5 h-5" />;
+      case 'car': return <Car className="w-5 h-5" />;
+      case 'education': return <GraduationCap className="w-5 h-5" />;
+      case 'emergency': return <ShieldAlert className="w-5 h-5" />;
+      default: return <MoreHorizontal className="w-5 h-5" />;
+    }
+  };
+
+  const getCategoryLabel = (cat: GoalCategory) => {
+    switch (cat) {
+      case 'travel': return 'Viagem';
+      case 'house': return 'Moradia';
+      case 'car': return 'Veículo';
+      case 'education': return 'Educação';
+      case 'emergency': return 'Reserva';
+      default: return 'Outros';
+    }
+  };
+
+  const calculateMonthlyTarget = (target: number, current: number, deadlineStr: string | undefined) => {
+    if (!deadlineStr) return null;
     
-    const payload = {
-      name: formData.name,
-      targetAmount: parseFloat(formData.targetAmount),
-      currentAmount: parseFloat(formData.currentAmount) || 0,
-      currency: formData.currency,
-      deadline: formData.deadline || null,
-      category: formData.category || null,
+    const now = new Date();
+    const deadline = new Date(deadlineStr);
+    const remaining = target - current;
+
+    if (remaining <= 0) return 0;
+
+    // Diferença em meses
+    const diffMonths = (deadline.getFullYear() - now.getFullYear()) * 12 + (deadline.getMonth() - now.getMonth());
+    
+    // Se o prazo for este mês ou já passou, o valor mensal é o total restante
+    const months = Math.max(diffMonths, 1);
+    
+    return {
+      monthlyValue: remaining / months,
+      monthsRemaining: months
     };
-
-    try {
-      if (editingGoal) {
-        await fetch(`${import.meta.env.VITE_API_URL}/api/goals/${editingGoal.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify({ ...payload, status: editingGoal.status }),
-        });
-      } else {
-        await fetch(`${import.meta.env.VITE_API_URL}/api/goals`, {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(payload),
-        });
-      }
-      
-      fetchGoals();
-      resetForm();
-    } catch (error) {
-      console.error('Erro ao salvar meta:', error);
-    }
-  };
-
-  const handleDelete = async (id: string) => {
-    if (!confirm('Tem certeza que deseja deletar esta meta?')) return;
-    
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL}/api/goals/${id}`, {
-        method: 'DELETE',
-        headers: {
-          'Authorization': `Bearer ${token}`,
-        },
-      });
-      fetchGoals();
-    } catch (error) {
-      console.error('Erro ao deletar meta:', error);
-    }
-  };
-
-  const handleEdit = (goal: FinancialGoal) => {
-    setEditingGoal(goal);
-    setFormData({
-      name: goal.name,
-      targetAmount: goal.targetAmount.toString(),
-      currentAmount: goal.currentAmount.toString(),
-      deadline: goal.deadline?.split('T')[0] || '',
-      category: goal.category || '',
-    });
-    setShowForm(true);
-  };
-
-  const handleUpdateProgress = async (goal: FinancialGoal, newAmount: number) => {
-    try {
-      await fetch(`${import.meta.env.VITE_API_URL}/api/goals/${goal.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`,
-        },
-        body: JSON.stringify({
-          ...goal,
-          currentAmount: newAmount,
-          status: newAmount >= goal.targetAmount ? 'completed' : 'in_progress',
-        }),
-      });
-      fetchGoals();
-    } catch (error) {
-      console.error('Erro ao atualizar progresso:', error);
-    }
-  };
-
-  const resetForm = () => {
-    setFormData({
-      name: '',
-      targetAmount: '',
-      currentAmount: '',
-      deadline: '',
-      category: '',
-    });
-    setEditingGoal(null);
-    setShowForm(false);
-  };
-
-  const calculateProgress = (current: number, target: number) => {
-    return Math.min(100, (current / target) * 100);
-  };
-
-  const getProgressColor = (percentage: number) => {
-    if (percentage >= 100) return 'bg-green-600';
-    if (percentage >= 75) return 'bg-blue-600';
-    if (percentage >= 50) return 'bg-yellow-500';
-    return 'bg-red-500';
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-2xl font-bold text-gray-900">🎯 Metas Financeiras</h2>
-        <button
-          onClick={() => setShowForm(!showForm)}
-          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+    <div className="space-y-8 pb-20">
+      <div className="flex justify-between items-center">
+        <div>
+          <h2 className="text-xl font-black text-slate-800 uppercase tracking-tight">Metas & Objetivos</h2>
+          <p className="text-xs text-slate-400 font-bold uppercase tracking-widest mt-1">Transformando sonhos em números</p>
+        </div>
+        <button 
+          onClick={() => setIsAdding(!isAdding)}
+          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 transition-all"
         >
-          {showForm ? '❌ Cancelar' : '➕ Nova Meta'}
+          <Plus className="w-5 h-5" />
+          Nova Meta
         </button>
       </div>
 
-      {/* Formulário */}
-      {showForm && (
-        <div className="bg-white rounded-xl shadow-md p-6">
-          <h3 className="text-lg font-semibold text-gray-800 mb-4">
-            {editingGoal ? 'Editar Meta' : 'Nova Meta'}
-          </h3>
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Nome da Meta *
-                </label>
-                <input
-                  type="text"
-                  value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                  placeholder="Ex: Viagem para Europa"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Categoria
-                </label>
-                <input
-                  type="text"
-                  value={formData.category}
-                  onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="Ex: Viagem, Carro, Casa"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valor Alvo *
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.targetAmount}
-                  onChange={(e) => setFormData({ ...formData, targetAmount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Valor Atual
-                </label>
-                <input
-                  type="number"
-                  step="0.01"
-                  value={formData.currentAmount}
-                  onChange={(e) => setFormData({ ...formData, currentAmount: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  placeholder="0.00"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Moeda *
-                </label>
-                <select
-                  value={formData.currency}
-                  onChange={(e) => setFormData({ ...formData, currency: e.target.value as 'BRL' | 'EUR' })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                  required
-                >
-                  <option value="BRL">🇧🇷 Real (BRL)</option>
-                  <option value="EUR">🇪🇺 Euro (EUR)</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
-                  Prazo
-                </label>
-                <input
-                  type="date"
-                  value={formData.deadline}
-                  onChange={(e) => setFormData({ ...formData, deadline: e.target.value })}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
-                />
-              </div>
+      {isAdding && (
+        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 animate-in slide-in-from-top-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="lg:col-span-2">
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Nome do Objetivo</label>
+              <input 
+                type="text" required
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                value={formData.name}
+                onChange={e => setFormData({ ...formData, name: e.target.value })}
+                placeholder="Ex: Viagem para o Japão, Reserva de 6 meses"
+              />
             </div>
-            <div className="flex gap-2">
-              <button
-                type="submit"
-                className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
+            <div>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Categoria</label>
+              <select 
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                value={formData.category}
+                onChange={e => setFormData({ ...formData, category: e.target.value as GoalCategory })}
               >
-                {editingGoal ? 'Atualizar' : 'Criar Meta'}
-              </button>
-              <button
-                type="button"
-                onClick={resetForm}
-                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 transition"
-              >
-                Cancelar
-              </button>
+                <option value="emergency">Reserva de Emergência</option>
+                <option value="travel">Viagem</option>
+                <option value="house">Casa / Imóvel</option>
+                <option value="car">Carro / Veículo</option>
+                <option value="education">Educação</option>
+                <option value="other">Outro Objetivo</option>
+              </select>
             </div>
-          </form>
-        </div>
+            <div>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Valor Alvo</label>
+              <input 
+                type="number" step="0.01" required
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                value={formData.targetAmount || ''}
+                onChange={e => setFormData({ ...formData, targetAmount: parseFloat(e.target.value) })}
+                placeholder="0,00"
+              />
+            </div>
+            <div>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Conta Relacionada</label>
+              <select 
+                required
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
+                value={formData.accountId}
+                onChange={e => setFormData({ ...formData, accountId: e.target.value })}
+              >
+                <option value="">Selecione a conta...</option>
+                {accounts.map((a: Account) => (
+                  <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block text-xs font-black text-slate-400 uppercase tracking-widest mb-2">Data Limite (Essencial para cálculo mensal)</label>
+              <input 
+                type="date"
+                className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                value={formData.deadline}
+                onChange={e => setFormData({ ...formData, deadline: e.target.value })}
+              />
+            </div>
+          </div>
+          <div className="mt-8 flex gap-3">
+            <button type="submit" className="bg-indigo-600 text-white px-8 py-4 rounded-2xl font-bold shadow-lg shadow-indigo-600/20">Criar Objetivo</button>
+            <button type="button" onClick={() => setIsAdding(false)} className="bg-slate-100 text-slate-600 px-8 py-4 rounded-2xl font-bold">Cancelar</button>
+          </div>
+        </form>
       )}
 
-      {/* Lista de Metas */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {goals.map((goal) => {
-          const progress = calculateProgress(goal.currentAmount, goal.targetAmount);
-          const daysRemaining = goal.deadline
-            ? Math.ceil((new Date(goal.deadline).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
-            : null;
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+        {goals.map((goal: Goal) => {
+          const account = accounts.find((a: Account) => a.id === goal.accountId);
+          const currentAmount = account?.balance || 0;
+          const progress = Math.min((currentAmount / goal.targetAmount) * 100, 100);
+          const isCompleted = progress >= 100;
+          const symbol = account?.currency === Currency.BRL ? 'R$' : '€';
+          const remaining = Math.max(goal.targetAmount - currentAmount, 0);
+          
+          const monthlyPlan = calculateMonthlyTarget(goal.targetAmount, currentAmount, goal.deadline);
 
           return (
-            <div key={goal.id} className="bg-white rounded-xl shadow-md p-6">
-              <div className="flex items-start justify-between mb-4">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-800">{goal.name}</h3>
-                  {goal.category && (
-                    <span className="inline-block px-2 py-1 text-xs bg-blue-100 text-blue-700 rounded mt-1">
-                      {goal.category}
-                    </span>
-                  )}
+            <div key={goal.id} className="bg-white p-8 rounded-[2.5rem] shadow-sm border border-slate-100 relative group overflow-hidden flex flex-col h-full">
+              {/* Background Accent */}
+              <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full opacity-5 transition-transform group-hover:scale-110 ${isCompleted ? 'bg-emerald-500' : 'bg-indigo-500'}`}></div>
+
+              <div className="flex justify-between items-start mb-6">
+                <div className={`p-4 rounded-2xl ${isCompleted ? 'bg-emerald-50 text-emerald-600' : 'bg-indigo-50 text-indigo-600'}`}>
+                  {getCategoryIcon(goal.category)}
                 </div>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => handleEdit(goal)}
-                    className="text-blue-600 hover:text-blue-700"
+                <div className="flex gap-1">
+                  <button 
+                    onClick={() => deleteGoal(goal.id)}
+                    className="p-2 text-slate-300 hover:text-rose-500 hover:bg-rose-50 rounded-xl transition-all"
                   >
-                    ✏️
-                  </button>
-                  <button
-                    onClick={() => handleDelete(goal.id)}
-                    className="text-red-600 hover:text-red-700"
-                  >
-                    🗑️
+                    <Trash2 className="w-5 h-5" />
                   </button>
                 </div>
               </div>
 
-              <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Progresso</span>
-                  <span className="font-semibold text-gray-800">{progress.toFixed(1)}%</span>
+              <div className="space-y-1 mb-6">
+                <div className="flex items-center gap-2">
+                  <h4 className="text-lg font-black text-slate-900 tracking-tight leading-none">{goal.name}</h4>
+                  {isCompleted && <CheckCircle2 className="w-4 h-4 text-emerald-500" />}
                 </div>
-                
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className={`h-3 rounded-full transition-all ${getProgressColor(progress)}`}
-                    style={{ width: `${progress}%` }}
-                  ></div>
-                </div>
+                <p className="text-[10px] font-black text-slate-400 uppercase tracking-[0.1em]">{getCategoryLabel(goal.category)} • {account?.name}</p>
+              </div>
 
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">
-                    {goal.currency === 'EUR' ? '€' : 'R$'} {goal.currentAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+              <div className="space-y-2 mb-8">
+                <div className="flex justify-between items-end">
+                  <span className="text-2xl font-black text-slate-900">
+                    {progress.toFixed(0)}%
                   </span>
-                  <span className="font-semibold text-gray-800">
-                    {goal.currency === 'EUR' ? '€' : 'R$'} {goal.targetAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
-                  </span>
-                </div>
-
-                {daysRemaining !== null && (
-                  <div className={`text-sm ${daysRemaining < 0 ? 'text-red-600' : 'text-gray-600'}`}>
-                    {daysRemaining < 0
-                      ? `Prazo expirado há ${Math.abs(daysRemaining)} dias`
-                      : `${daysRemaining} dias restantes`}
+                  <div className="text-right">
+                    <p className="text-[10px] font-black text-slate-400 uppercase">Progresso</p>
+                    <p className="text-sm font-bold text-slate-700">
+                      {symbol} {currentAmount.toLocaleString('pt-BR')} / {goal.targetAmount.toLocaleString('pt-BR')}
+                    </p>
                   </div>
-                )}
-
-                <div className="pt-3 border-t border-gray-200">
-                  <button
-                    onClick={() => {
-                      const newAmount = prompt(
-                        'Digite o novo valor atual:',
-                        goal.currentAmount.toString()
-                      );
-                      if (newAmount) {
-                        handleUpdateProgress(goal, parseFloat(newAmount));
-                      }
-                    }}
-                    className="w-full px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition text-sm"
-                  >
-                    💰 Atualizar Progresso
-                  </button>
+                </div>
+                <div className="h-3 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${isCompleted ? 'bg-emerald-500' : 'bg-indigo-500 shadow-lg shadow-indigo-500/30'}`}
+                    style={{ width: `${progress}%` }}
+                  />
                 </div>
               </div>
+
+              {/* Monthly Savings Plan Card - NEW */}
+              {!isCompleted && monthlyPlan && (
+                <div className="mb-8 p-5 bg-indigo-50/50 rounded-3xl border border-indigo-100/50">
+                  <div className="flex items-center gap-2 mb-3">
+                    <Coins className="w-4 h-4 text-indigo-600" />
+                    <span className="text-[10px] font-black text-indigo-600 uppercase tracking-widest">Plano de Economia</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <div>
+                      <p className="text-xl font-black text-indigo-900 leading-none">
+                        {symbol} {monthlyPlan.monthlyValue.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                      </p>
+                      <p className="text-[10px] font-bold text-indigo-400 uppercase mt-1">Por Mês</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-base font-black text-indigo-900 leading-none">
+                        {monthlyPlan.monthsRemaining}
+                      </p>
+                      <p className="text-[10px] font-bold text-indigo-400 uppercase mt-1">Meses Restantes</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="mt-auto grid grid-cols-2 gap-4 pt-6 border-t border-slate-50">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <TrendingUp className="w-3 h-3" /> Faltam
+                  </div>
+                  <p className="font-black text-slate-900">{symbol} {remaining.toLocaleString('pt-BR')}</p>
+                </div>
+                <div className="space-y-1 text-right">
+                  <div className="flex items-center justify-end gap-1.5 text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                    <Calendar className="w-3 h-3" /> Prazo
+                  </div>
+                  <p className="font-black text-slate-900">
+                    {goal.deadline ? new Date(goal.deadline).toLocaleDateString('pt-BR') : 'Sem prazo'}
+                  </p>
+                </div>
+              </div>
+
+              {isCompleted ? (
+                <div className="mt-6 flex items-center gap-2 px-4 py-3 bg-emerald-50 text-emerald-700 rounded-2xl border border-emerald-100">
+                  <CheckCircle2 className="w-4 h-4" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Objetivo Atingido! Parabéns!</span>
+                </div>
+              ) : remaining > currentAmount && (
+                <div className="mt-6 flex items-center gap-2 px-4 py-3 bg-amber-50 text-amber-700 rounded-2xl border border-amber-100">
+                  <AlertCircle className="w-4 h-4" />
+                  <span className="text-[10px] font-bold uppercase tracking-wider">Mantenha o Foco no Plano!</span>
+                </div>
+              )}
             </div>
           );
         })}
+        {goals.length === 0 && (
+          <div className="lg:col-span-3 py-20 bg-white rounded-[3rem] border-2 border-dashed border-slate-100 flex flex-col items-center justify-center text-slate-300">
+            <Target className="w-16 h-16 mb-4 opacity-10" />
+            <p className="font-bold text-lg">Nenhuma meta definida ainda.</p>
+            <p className="text-sm">Comece a planejar seus sonhos clicando em "Nova Meta".</p>
+          </div>
+        )}
       </div>
 
-      {goals.length === 0 && !showForm && (
-        <div className="bg-gray-50 rounded-xl p-12 text-center">
-          <div className="text-6xl mb-4">🎯</div>
-          <h3 className="text-lg font-semibold text-gray-700 mb-2">Nenhuma meta cadastrada</h3>
-          <p className="text-gray-500 mb-4">Comece definindo suas metas financeiras!</p>
-          <button
-            onClick={() => setShowForm(true)}
-            className="px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition"
-          >
-            Criar Primeira Meta
+      {/* Dica do Especialista */}
+      <div className="bg-indigo-900 text-white p-8 md:p-12 rounded-[3rem] shadow-2xl shadow-indigo-900/20 relative overflow-hidden">
+        <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-800 rounded-full -mr-32 -mt-32 opacity-50 blur-3xl"></div>
+        <div className="relative z-10 flex flex-col md:flex-row items-center gap-8">
+          <div className="w-20 h-20 bg-white/10 rounded-3xl flex items-center justify-center backdrop-blur-md border border-white/20">
+            <ShieldAlert className="w-10 h-10" />
+          </div>
+          <div className="flex-1 text-center md:text-left">
+            <h3 className="text-xl font-black mb-2 uppercase tracking-tight">O Poder da Reserva de Emergência</h3>
+            <p className="text-indigo-200 font-medium leading-relaxed">
+              Especialistas recomendam guardar entre 6 a 12 meses do seu custo de vida mensal em uma conta de alta liquidez. Comece criando uma meta de "Reserva de Emergência" atrelada à sua conta de investimentos.
+            </p>
+          </div>
+          <button className="px-8 py-4 bg-white text-indigo-900 rounded-2xl font-black hover:bg-indigo-50 transition-colors whitespace-nowrap">
+            Saber Mais
           </button>
         </div>
-      )}
+      </div>
     </div>
   );
 };
-
-export default GoalsView;

@@ -1,14 +1,13 @@
 
 import React, { useState } from 'react';
-import { Plus, Search, Filter, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Repeat, Trash2 } from 'lucide-react';
-import { TransactionType, Currency } from '../types';
+import { Plus, Search, Filter, TrendingUp, TrendingDown, ArrowUpRight, ArrowDownRight, Repeat, Edit2, Trash2, Check, X } from 'lucide-react';
+import { TransactionType, Currency, Transaction } from '../types';
 
 export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
-  const { transactions, accounts, categories, incomeSources, addTransaction, deleteTransaction } = data;
+  const { transactions, accounts, categories, incomeSources, addTransaction, updateTransaction, deleteTransaction } = data;
   const [isAdding, setIsAdding] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [type, setType] = useState<TransactionType>(TransactionType.EXPENSE);
-  const [selectedCurrency, setSelectedCurrency] = useState<Currency | 'ALL'>('ALL');
   const [formData, setFormData] = useState({
     description: '',
     amount: 0,
@@ -18,12 +17,11 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
     incomeSourceId: '',
     isFixed: false
   });
+  const [editFormData, setEditFormData] = useState<Transaction | null>(null);
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (isLoading) return;
-    setIsLoading(true);
-    await addTransaction({ ...formData, type });
+    addTransaction({ ...formData, type });
     setFormData({
       description: '',
       amount: 0,
@@ -34,12 +32,19 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
       isFixed: false
     });
     setIsAdding(false);
-    setIsLoading(false);
   };
 
-  const handleDelete = async (id: string) => {
-    if (confirm('Tem certeza que deseja deletar este lançamento?')) {
-      await deleteTransaction(id);
+  const startEditing = (t: Transaction) => {
+    setEditingId(t.id);
+    setEditFormData({ ...t });
+  };
+
+  const handleUpdate = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (editingId && editFormData) {
+      updateTransaction(editingId, editFormData);
+      setEditingId(null);
+      setEditFormData(null);
     }
   };
 
@@ -54,64 +59,31 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
             className="w-full pl-12 pr-4 py-3 bg-white border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500"
           />
         </div>
-        <div className="flex items-center gap-3">
-          <div className="flex gap-2 p-1 bg-slate-100 rounded-xl">
-            <button
-              onClick={() => setSelectedCurrency('ALL')}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedCurrency === 'ALL'
-                  ? 'bg-white text-slate-900 shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              Todas
-            </button>
-            <button
-              onClick={() => setSelectedCurrency(Currency.BRL)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedCurrency === Currency.BRL
-                  ? 'bg-green-500 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              🇧🇷 BRL
-            </button>
-            <button
-              onClick={() => setSelectedCurrency(Currency.EUR)}
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                selectedCurrency === Currency.EUR
-                  ? 'bg-blue-500 text-white shadow-sm'
-                  : 'text-slate-600 hover:text-slate-900'
-              }`}
-            >
-              🇪🇺 EUR
-            </button>
-          </div>
-          <button 
-            onClick={() => setIsAdding(!isAdding)}
-            className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-600/20"
-          >
-            <Plus className="w-5 h-5" />
-            Novo Lançamento
-          </button>
-        </div>
+        <button 
+          onClick={() => setIsAdding(!isAdding)}
+          className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-indigo-600/20"
+        >
+          <Plus className="w-5 h-5" />
+          Novo Lançamento
+        </button>
       </div>
 
-      {isAdding && (
-        <form onSubmit={handleSubmit} className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 animate-in slide-in-from-top-2 duration-300">
+      {(isAdding || editingId) && (
+        <form onSubmit={editingId ? handleUpdate : handleSubmit} className="bg-white p-8 rounded-3xl shadow-sm border border-slate-100 animate-in slide-in-from-top-2 duration-300">
           <div className="flex justify-between items-center mb-8">
+            <h2 className="text-xl font-bold text-slate-800">{editingId ? 'Editar Lançamento' : 'Novo Lançamento'}</h2>
             <div className="flex gap-4 p-1 bg-slate-50 rounded-2xl w-fit">
               <button 
                 type="button"
-                onClick={() => setType(TransactionType.EXPENSE)}
-                className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all ${type === TransactionType.EXPENSE ? 'bg-white text-rose-600 shadow-sm font-bold' : 'text-slate-500'}`}
+                onClick={() => editingId ? setEditFormData(prev => prev ? {...prev, type: TransactionType.EXPENSE} : null) : setType(TransactionType.EXPENSE)}
+                className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all ${(editingId ? editFormData?.type : type) === TransactionType.EXPENSE ? 'bg-white text-rose-600 shadow-sm font-bold' : 'text-slate-500'}`}
               >
                 <TrendingDown className="w-4 h-4" /> Despesa
               </button>
               <button 
                 type="button"
-                onClick={() => setType(TransactionType.INCOME)}
-                className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all ${type === TransactionType.INCOME ? 'bg-white text-emerald-600 shadow-sm font-bold' : 'text-slate-500'}`}
+                onClick={() => editingId ? setEditFormData(prev => prev ? {...prev, type: TransactionType.INCOME} : null) : setType(TransactionType.INCOME)}
+                className={`flex items-center gap-2 px-6 py-2 rounded-xl transition-all ${(editingId ? editFormData?.type : type) === TransactionType.INCOME ? 'bg-white text-emerald-600 shadow-sm font-bold' : 'text-slate-500'}`}
               >
                 <TrendingUp className="w-4 h-4" /> Receita
               </button>
@@ -122,8 +94,8 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
                 type="checkbox" 
                 id="isFixed"
                 className="w-5 h-5 rounded border-indigo-300 text-indigo-600 focus:ring-indigo-500"
-                checked={formData.isFixed}
-                onChange={e => setFormData({ ...formData, isFixed: e.target.checked })}
+                checked={editingId ? editFormData?.isFixed : formData.isFixed}
+                onChange={e => editingId ? setEditFormData(prev => prev ? {...prev, isFixed: e.target.checked} : null) : setFormData({ ...formData, isFixed: e.target.checked })}
               />
               <label htmlFor="isFixed" className="text-sm font-bold text-indigo-700 flex items-center gap-2 cursor-pointer">
                 <Repeat className="w-4 h-4" /> Fixa / Recorrente
@@ -137,8 +109,8 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
               <input 
                 type="text" required
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-                value={formData.description}
-                onChange={e => setFormData({...formData, description: e.target.value})}
+                value={editingId ? editFormData?.description : formData.description}
+                onChange={e => editingId ? setEditFormData(prev => prev ? {...prev, description: e.target.value} : null) : setFormData({...formData, description: e.target.value})}
                 placeholder="Ex: Aluguel, Supermercado, Salário Mensal"
               />
             </div>
@@ -147,8 +119,8 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
               <input 
                 type="number" step="0.01" required
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-                value={formData.amount || ''}
-                onChange={e => setFormData({...formData, amount: parseFloat(e.target.value)})}
+                value={editingId ? editFormData?.amount : formData.amount || ''}
+                onChange={e => editingId ? setEditFormData(prev => prev ? {...prev, amount: parseFloat(e.target.value)} : null) : setFormData({...formData, amount: parseFloat(e.target.value)})}
                 placeholder="0,00"
               />
             </div>
@@ -156,8 +128,8 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
               <label className="block text-sm font-semibold text-slate-700 mb-2">Conta</label>
               <select 
                 required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-                value={formData.accountId}
-                onChange={e => setFormData({...formData, accountId: e.target.value})}
+                value={editingId ? editFormData?.accountId : formData.accountId}
+                onChange={e => editingId ? setEditFormData(prev => prev ? {...prev, accountId: e.target.value} : null) : setFormData({...formData, accountId: e.target.value})}
               >
                 <option value="">Selecione a conta</option>
                 {accounts.map((a: any) => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
@@ -167,20 +139,20 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
               <label className="block text-sm font-semibold text-slate-700 mb-2">Categoria</label>
               <select 
                 required className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-                value={formData.categoryId}
-                onChange={e => setFormData({...formData, categoryId: e.target.value})}
+                value={editingId ? editFormData?.categoryId : formData.categoryId}
+                onChange={e => editingId ? setEditFormData(prev => prev ? {...prev, categoryId: e.target.value} : null) : setFormData({...formData, categoryId: e.target.value})}
               >
                 <option value="">Selecione a categoria</option>
-                {categories.filter((c: any) => c.type === type).map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
+                {categories.filter((c: any) => c.type === (editingId ? editFormData?.type : type)).map((c: any) => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
             </div>
-            {type === TransactionType.INCOME && (
+            {(editingId ? editFormData?.type : type) === TransactionType.INCOME && (
               <div>
                 <label className="block text-sm font-semibold text-slate-700 mb-2">Fonte de Renda</label>
                 <select 
                   className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-                  value={formData.incomeSourceId}
-                  onChange={e => setFormData({...formData, incomeSourceId: e.target.value})}
+                  value={editingId ? editFormData?.incomeSourceId : formData.incomeSourceId}
+                  onChange={e => editingId ? setEditFormData(prev => prev ? {...prev, incomeSourceId: e.target.value} : null) : setFormData({...formData, incomeSourceId: e.target.value})}
                 >
                   <option value="">Selecione a fonte</option>
                   {incomeSources.map((s: any) => <option key={s.id} value={s.id}>{s.name}</option>)}
@@ -192,16 +164,22 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
               <input 
                 type="date" required
                 className="w-full px-4 py-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:ring-2 focus:ring-indigo-500"
-                value={formData.date}
-                onChange={e => setFormData({...formData, date: e.target.value})}
+                value={editingId ? editFormData?.date : formData.date}
+                onChange={e => editingId ? setEditFormData(prev => prev ? {...prev, date: e.target.value} : null) : setFormData({...formData, date: e.target.value})}
               />
             </div>
           </div>
           <div className="mt-8 flex gap-4">
-            <button type="submit" disabled={isLoading} className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700 disabled:opacity-50 disabled:cursor-not-allowed">
-              {isLoading ? 'Salvando...' : 'Salvar Lançamento'}
+            <button type="submit" className="bg-indigo-600 text-white px-8 py-3 rounded-xl font-bold shadow-lg shadow-indigo-600/20 hover:bg-indigo-700">
+              {editingId ? 'Atualizar Lançamento' : 'Salvar Lançamento'}
             </button>
-            <button type="button" onClick={() => setIsAdding(false)} className="bg-slate-100 text-slate-600 px-8 py-3 rounded-xl font-bold hover:bg-slate-200">Cancelar</button>
+            <button 
+              type="button" 
+              onClick={() => { setIsAdding(false); setEditingId(null); setEditFormData(null); }} 
+              className="bg-slate-100 text-slate-600 px-8 py-3 rounded-xl font-bold hover:bg-slate-200"
+            >
+              Cancelar
+            </button>
           </div>
         </form>
       )}
@@ -215,17 +193,11 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
               <th className="px-6 py-4">Categoria</th>
               <th className="px-6 py-4">Conta</th>
               <th className="px-6 py-4 text-right">Valor</th>
-              <th className="px-6 py-4 text-right">Ações</th>
+              <th className="px-6 py-4 text-center">Ações</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
-            {transactions.length > 0 ? transactions
-              .filter((t: any) => {
-                if (selectedCurrency === 'ALL') return true;
-                const acc = accounts.find((a: any) => a.id === t.accountId);
-                return acc?.currency === selectedCurrency;
-              })
-              .map((t: any) => {
+            {transactions.length > 0 ? transactions.map((t: any) => {
               const acc = accounts.find((a: any) => a.id === t.accountId);
               const cat = categories.find((c: any) => c.id === t.categoryId);
               return (
@@ -259,14 +231,21 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
                       {acc?.currency === Currency.BRL ? 'R$' : '€'} {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                     </div>
                   </td>
-                  <td className="px-6 py-4 text-right">
-                    <button
-                      onClick={() => handleDelete(t.id)}
-                      className="opacity-0 group-hover:opacity-100 transition-opacity p-2 hover:bg-rose-50 rounded-lg text-rose-600 hover:text-rose-700"
-                      title="Deletar lançamento"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
+                  <td className="px-6 py-4 text-center">
+                    <div className="flex justify-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                      <button 
+                        onClick={() => startEditing(t)}
+                        className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                      >
+                        <Edit2 className="w-4 h-4" />
+                      </button>
+                      <button 
+                        onClick={() => deleteTransaction(t.id)}
+                        className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </div>
                   </td>
                 </tr>
               );

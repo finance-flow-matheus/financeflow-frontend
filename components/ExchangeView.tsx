@@ -1,11 +1,11 @@
 
-import React, { useState } from 'react';
-import { ArrowRight, RefreshCcw, Info, ArrowLeftRight, Landmark, Edit2, Trash2 } from 'lucide-react';
-import { Currency } from '../types';
+import React, { useState, useEffect } from 'react';
+import { ArrowRight, RefreshCcw, Info, ArrowLeftRight, Landmark, CreditCard, Banknote } from 'lucide-react';
+import { Currency, Account } from '../types';
 
 export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
-  const { accounts, exchangeOperations, registerExchange, updateExchange, deleteExchange } = data;
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const { accounts, exchangeOperations, registerExchange } = data;
+  
   const [formData, setFormData] = useState({
     sourceAccountId: '',
     sourceAmount: 0,
@@ -14,12 +14,18 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
     date: new Date().toISOString().split('T')[0]
   });
 
-  // Get selected account currencies
-  const sourceAccount = accounts.find((a: any) => a.id === formData.sourceAccountId);
-  const destinationAccount = accounts.find((a: any) => a.id === formData.destinationAccountId);
-  
-  const sourceCurrency = sourceAccount?.currency || 'BRL';
-  const destinationCurrency = destinationAccount?.currency || 'BRL';
+  const sourceAccount = accounts.find((a: Account) => a.id === formData.sourceAccountId);
+  const destinationAccount = accounts.find((a: Account) => a.id === formData.destinationAccountId);
+
+  const isExchange = sourceAccount && destinationAccount && sourceAccount.currency !== destinationAccount.currency;
+  const isSameCurrency = sourceAccount && destinationAccount && sourceAccount.currency === destinationAccount.currency;
+
+  // Sincroniza o valor de destino se for a mesma moeda (Transferência)
+  useEffect(() => {
+    if (isSameCurrency) {
+      setFormData(prev => ({ ...prev, destinationAmount: prev.sourceAmount }));
+    }
+  }, [formData.sourceAmount, isSameCurrency]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,12 +33,11 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
       alert("Preencha todos os campos corretamente.");
       return;
     }
-    if (editingId) {
-      updateExchange(editingId, formData);
-      setEditingId(null);
-    } else {
-      registerExchange(formData);
+    if (formData.sourceAccountId === formData.destinationAccountId) {
+      alert("A conta de origem e destino não podem ser a mesma.");
+      return;
     }
+    registerExchange(formData);
     setFormData({
       sourceAccountId: '',
       sourceAmount: 0,
@@ -43,51 +48,57 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
   };
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8">
+    <div className="max-w-5xl mx-auto space-y-8">
       <div className="bg-indigo-50 border border-indigo-100 p-6 rounded-3xl flex items-start gap-4 shadow-sm">
         <div className="bg-indigo-100 p-2 rounded-xl text-indigo-600">
           <Info className="w-5 h-5" />
         </div>
         <div>
-          <h4 className="font-bold text-indigo-900 mb-1">Transferências e Câmbio</h4>
+          <h4 className="font-bold text-indigo-900 mb-1">Transferências & Câmbio</h4>
           <p className="text-sm text-indigo-700/80 leading-relaxed">
-            Transfira valores entre quaisquer contas ou registre operações de câmbio manual. Os saldos serão atualizados automaticamente com base nos valores informados, sem conversões automáticas.
+            Mova saldo entre suas contas. Se as moedas forem iguais, o valor será replicado. Se forem diferentes (BRL ↔ EUR), você deve informar o valor de saída e o valor de entrada conforme a cotação que utilizou.
           </p>
         </div>
       </div>
 
-
-
-      <form onSubmit={handleSubmit} className="bg-white p-10 pt-14 rounded-[3rem] shadow-sm border border-slate-100 relative overflow-hidden">
-        <div className="absolute top-0 right-0 p-8 text-slate-100 opacity-20">
-          <RefreshCcw className="w-32 h-32 rotate-12" />
-        </div>
-
+      <form onSubmit={handleSubmit} className="bg-white p-8 md:p-12 rounded-[3rem] shadow-sm border border-slate-100 relative overflow-hidden">
         <div className="grid grid-cols-1 md:grid-cols-2 gap-12 relative z-10">
-          {/* Source */}
+          
+          {/* Origem */}
           <div className="space-y-6">
-            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-rose-50 text-rose-600 flex items-center justify-center font-black">1</div>
-              Origem ({sourceCurrency})
-            </h3>
-            <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-slate-900 text-white flex items-center justify-center font-black">1</div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Conta de Saída</label>
+                <h3 className="text-lg font-black text-slate-900">Origem</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">De onde sai o dinheiro</p>
+              </div>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Selecione a Conta</label>
                 <select 
-                  required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-rose-500 transition-all appearance-none cursor-pointer"
+                  required 
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
                   value={formData.sourceAccountId}
                   onChange={e => setFormData({...formData, sourceAccountId: e.target.value})}
                 >
-                  <option value="">Selecione a conta de origem</option>
-                  {accounts.map((a: any) => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
+                  <option value="">Escolha uma conta...</option>
+                  {accounts.map((a: Account) => (
+                    <option key={a.id} value={a.id}>{a.name} ({a.currency}) - Saldo: {a.currency === Currency.BRL ? 'R$' : '€'} {a.balance.toLocaleString('pt-BR')}</option>
+                  ))}
                 </select>
               </div>
+              
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Valor Retirado ({sourceCurrency === 'BRL' ? 'R$' : '€'})</label>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Valor de Saída</label>
                 <div className="relative">
+                   <div className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">
+                    {sourceAccount?.currency === Currency.BRL ? 'R$' : (sourceAccount?.currency === Currency.EUR ? '€' : '$')}
+                   </div>
                    <input 
                     type="number" step="0.01" required
-                    className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-rose-500 transition-all font-bold text-lg"
+                    className="w-full pl-14 pr-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-black text-xl text-slate-900"
                     value={formData.sourceAmount || ''}
                     onChange={e => setFormData({...formData, sourceAmount: parseFloat(e.target.value)})}
                     placeholder="0,00"
@@ -97,164 +108,157 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
             </div>
           </div>
 
-          {/* Destination */}
+          {/* Destino */}
           <div className="space-y-6">
-            <h3 className="text-xl font-bold text-slate-900 flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-emerald-50 text-emerald-600 flex items-center justify-center font-black">2</div>
-              Destino ({destinationCurrency})
-            </h3>
-            <div className="space-y-5">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-600 text-white flex items-center justify-center font-black">2</div>
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Conta de Entrada</label>
+                <h3 className="text-lg font-black text-slate-900">Destino</h3>
+                <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Onde o dinheiro entra</p>
+              </div>
+            </div>
+
+            <div className="space-y-4">
+              <div>
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Selecione a Conta</label>
                 <select 
-                  required className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all appearance-none cursor-pointer"
+                  required 
+                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold text-slate-700"
                   value={formData.destinationAccountId}
                   onChange={e => setFormData({...formData, destinationAccountId: e.target.value})}
                 >
-                  <option value="">Selecione a conta de destino</option>
-                  {accounts.filter((a: any) => a.id !== formData.sourceAccountId).map((a: any) => <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>)}
+                  <option value="">Escolha uma conta...</option>
+                  {accounts.filter((a: Account) => a.id !== formData.sourceAccountId).map((a: Account) => (
+                    <option key={a.id} value={a.id}>{a.name} ({a.currency})</option>
+                  ))}
                 </select>
               </div>
+
               <div>
-                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Valor Recebido ({destinationCurrency === 'BRL' ? 'R$' : '€'})</label>
-                <input 
-                  type="number" step="0.01" required
-                  className="w-full px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-emerald-500 transition-all font-bold text-lg"
-                  value={formData.destinationAmount || ''}
-                  onChange={e => setFormData({...formData, destinationAmount: parseFloat(e.target.value)})}
-                  placeholder="0,00"
-                />
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">
+                  {isSameCurrency ? 'Valor de Entrada (Automático)' : 'Valor de Entrada (Após Câmbio)'}
+                </label>
+                <div className="relative">
+                   <div className="absolute left-5 top-1/2 -translate-y-1/2 font-black text-slate-400">
+                    {destinationAccount?.currency === Currency.BRL ? 'R$' : (destinationAccount?.currency === Currency.EUR ? '€' : '$')}
+                   </div>
+                   <input 
+                    type="number" step="0.01" required
+                    disabled={isSameCurrency || !formData.destinationAccountId}
+                    className={`w-full pl-14 pr-5 py-4 border rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-black text-xl text-slate-900 ${isSameCurrency ? 'bg-slate-100 text-slate-500 border-slate-200' : 'bg-slate-50 border-slate-200'}`}
+                    value={formData.destinationAmount || ''}
+                    onChange={e => setFormData({...formData, destinationAmount: parseFloat(e.target.value)})}
+                    placeholder="0,00"
+                  />
+                </div>
               </div>
             </div>
           </div>
 
-          <div className="md:col-span-2 pt-4 border-t border-slate-100 mt-2">
-             <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Data da Operação</label>
-             <input 
-               type="date" required
-               className="w-full md:w-1/2 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 transition-all"
-               value={formData.date}
-               onChange={e => setFormData({...formData, date: e.target.value})}
-             />
+          <div className="md:col-span-2 pt-6 border-t border-slate-100 flex flex-col md:flex-row md:items-center justify-between gap-6">
+             <div className="flex-1">
+                <label className="block text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">Data da Operação</label>
+                <input 
+                  type="date" required
+                  className="w-full md:w-64 px-5 py-4 bg-slate-50 border border-slate-200 rounded-2xl outline-none focus:ring-2 focus:ring-indigo-500 font-bold"
+                  value={formData.date}
+                  onChange={e => setFormData({...formData, date: e.target.value})}
+                />
+             </div>
+
+             {isExchange && formData.sourceAmount > 0 && formData.destinationAmount > 0 && (
+               <div className="bg-indigo-50 px-6 py-4 rounded-2xl border border-indigo-100 animate-in zoom-in-95">
+                 <p className="text-[10px] font-black text-indigo-400 uppercase tracking-[0.2em] mb-1">Taxa de Conversão Efetiva</p>
+                 <p className="text-xl font-black text-indigo-900">
+                   1 {sourceAccount?.currency} = { (formData.destinationAmount / formData.sourceAmount).toFixed(4) } {destinationAccount?.currency}
+                 </p>
+               </div>
+             )}
           </div>
         </div>
 
-        <div className="mt-10 flex gap-3">
-          <button 
-            type="submit"
-            className="flex-1 bg-slate-900 text-white py-5 rounded-3xl font-bold text-lg shadow-xl shadow-slate-900/20 hover:bg-black transition-all flex items-center justify-center gap-3 group"
-          >
-            {editingId ? 'Atualizar Operação' : 'Confirmar Operação de Câmbio'}
-            <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
-          </button>
-          {editingId && (
-            <button 
-              type="button"
-              onClick={() => {
-                setEditingId(null);
-                setFormData({
-                  sourceAccountId: '',
-                  sourceAmount: 0,
-                  destinationAccountId: '',
-                  destinationAmount: 0,
-                  date: new Date().toISOString().split('T')[0]
-                });
-              }}
-              className="px-8 bg-slate-100 text-slate-600 py-5 rounded-3xl font-bold text-lg hover:bg-slate-200 transition-all"
-            >
-              Cancelar
-            </button>
-          )}
-        </div>
+        <button 
+          type="submit"
+          className="w-full mt-12 bg-slate-900 text-white py-6 rounded-3xl font-black text-lg shadow-xl shadow-slate-900/20 hover:bg-black hover:-translate-y-0.5 active:translate-y-0 transition-all flex items-center justify-center gap-4 group"
+        >
+          {isExchange ? 'Realizar Câmbio entre Moedas' : 'Confirmar Transferência'}
+          <ArrowRight className="w-6 h-6 group-hover:translate-x-1 transition-transform" />
+        </button>
       </form>
 
-      {/* History */}
+      {/* Histórico Melhorado */}
       <div className="bg-white rounded-[3rem] shadow-sm border border-slate-100 overflow-hidden">
         <div className="px-10 py-8 border-b border-slate-100 flex justify-between items-center">
-          <h3 className="text-xl font-bold text-slate-900">Histórico de Movimentações</h3>
-          <div className="text-xs font-bold text-slate-400 uppercase tracking-widest">Sentido / Valor / Taxa</div>
+          <h3 className="text-xl font-black text-slate-900 tracking-tight">Histórico de Movimentações</h3>
+          <div className="flex gap-2">
+             <div className="flex items-center gap-1.5 px-3 py-1 bg-blue-50 text-blue-600 rounded-full text-[10px] font-black uppercase tracking-widest">
+                <RefreshCcw className="w-3 h-3" /> Câmbio
+             </div>
+             <div className="flex items-center gap-1.5 px-3 py-1 bg-slate-100 text-slate-500 rounded-full text-[10px] font-black uppercase tracking-widest">
+                <ArrowLeftRight className="w-3 h-3" /> Transferência
+             </div>
+          </div>
         </div>
         <table className="w-full text-left">
-          <thead className="bg-slate-50 text-slate-500 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-100">
+          <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-100">
             <tr>
-              <th className="px-10 py-5">Data</th>
+              <th className="px-10 py-5">Data / Tipo</th>
               <th className="px-10 py-5">Saída</th>
-              <th className="px-10 py-5 text-center"></th>
+              <th className="px-10 py-5 text-center">Fluxo</th>
               <th className="px-10 py-5">Entrada</th>
-              <th className="px-10 py-5 text-right">Taxa Efetiva</th>
-              <th className="px-10 py-5 text-right">Ações</th>
+              <th className="px-10 py-5 text-right">Info</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-100">
             {exchangeOperations.slice().reverse().map((op: any) => {
               const srcAcc = accounts.find((a: any) => a.id === op.sourceAccountId);
               const dstAcc = accounts.find((a: any) => a.id === op.destinationAccountId);
+              const isOpExchange = srcAcc?.currency !== dstAcc?.currency;
+              
               const srcSym = srcAcc?.currency === Currency.BRL ? 'R$' : '€';
               const dstSym = dstAcc?.currency === Currency.BRL ? 'R$' : '€';
               
-              // Effective rate calculation based on which way it's going
-              const rate = op.sourceAmount / op.destinationAmount;
-              const rateText = srcAcc?.currency === Currency.BRL 
-                ? `1€ = R$ ${rate.toFixed(4)}` 
-                : `1€ = R$ ${(1/rate).toFixed(4)}`;
+              const rate = op.destinationAmount / op.sourceAmount;
 
               return (
-                <tr key={op.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-10 py-6 text-sm font-medium text-slate-500">{new Date(op.date).toLocaleDateString('pt-BR')}</td>
+                <tr key={op.id} className="hover:bg-slate-50/50 transition-colors group">
+                  <td className="px-10 py-6">
+                    <p className="text-sm font-black text-slate-900">{new Date(op.date).toLocaleDateString('pt-BR')}</p>
+                    <p className={`text-[9px] font-black uppercase tracking-widest ${isOpExchange ? 'text-blue-500' : 'text-slate-400'}`}>
+                      {isOpExchange ? 'Câmbio' : 'Transferência'}
+                    </p>
+                  </td>
                   <td className="px-10 py-6">
                     <div className="flex flex-col">
-                      <span className="font-bold text-rose-600">{srcSym} {op.sourceAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{srcAcc?.name}</span>
+                      <span className="font-black text-rose-600 text-base">{srcSym} {op.sourceAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{srcAcc?.name || 'Conta Removida'}</span>
                     </div>
                   </td>
                   <td className="px-10 py-6 text-center">
-                    <ArrowRight className="w-4 h-4 text-slate-300 mx-auto" />
+                    <div className={`w-8 h-8 rounded-full mx-auto flex items-center justify-center ${isOpExchange ? 'bg-blue-50 text-blue-500' : 'bg-slate-50 text-slate-300'}`}>
+                      <ArrowRight className="w-4 h-4" />
+                    </div>
                   </td>
                   <td className="px-10 py-6">
                     <div className="flex flex-col">
-                      <span className="font-bold text-emerald-600">{dstSym} {op.destinationAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{dstAcc?.name}</span>
+                      <span className="font-black text-emerald-600 text-base">{dstSym} {op.destinationAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{dstAcc?.name || 'Conta Removida'}</span>
                     </div>
                   </td>
                   <td className="px-10 py-6 text-right">
-                    <span className="text-xs font-black text-slate-800 bg-slate-100 px-3 py-1.5 rounded-lg border border-slate-200">
-                      {rateText}
-                    </span>
-                  </td>
-                  <td className="px-10 py-6 text-right">
-                    <div className="flex gap-1 justify-end">
-                      <button 
-                        onClick={() => {
-                          setEditingId(op.id);
-                          setFormData({
-                            sourceAccountId: op.sourceAccountId,
-                            sourceAmount: op.sourceAmount,
-                            destinationAccountId: op.destinationAccountId,
-                            destinationAmount: op.destinationAmount,
-                            date: op.date
-                          });
-                        }}
-                        className="p-2 text-slate-300 hover:text-indigo-500 transition-colors"
-                      >
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button 
-                        onClick={() => {
-                          if (confirm('Deseja realmente deletar esta operação?')) {
-                            deleteExchange(op.id);
-                          }
-                        }}
-                        className="p-2 text-slate-300 hover:text-rose-500 transition-colors"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
+                    {isOpExchange ? (
+                      <span className="text-[10px] font-black text-blue-600 bg-blue-50 px-3 py-1.5 rounded-lg border border-blue-100">
+                        TX: {rate.toFixed(4)}
+                      </span>
+                    ) : (
+                      <span className="text-[10px] font-bold text-slate-400">1:1</span>
+                    )}
                   </td>
                 </tr>
               );
             })}
             {exchangeOperations.length === 0 && (
-              <tr><td colSpan={5} className="px-10 py-12 text-center text-slate-400 italic">Nenhuma operação de câmbio registrada ainda.</td></tr>
+              <tr><td colSpan={5} className="px-10 py-20 text-center text-slate-400 italic font-medium">Nenhuma movimentação registrada.</td></tr>
             )}
           </tbody>
         </table>

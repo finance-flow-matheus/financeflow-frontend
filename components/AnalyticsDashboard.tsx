@@ -437,13 +437,13 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ token }) => {
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Receitas do Mês</span>
               <span className="text-2xl font-bold text-green-600">
-                R$ {(metrics?.monthly?.income || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {selectedCurrency === 'BRL' ? 'R$' : '€'} {(metrics?.[selectedCurrency]?.monthly?.income || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="flex justify-between items-center">
               <span className="text-gray-600">Despesas do Mês</span>
               <span className="text-2xl font-bold text-red-600">
-                R$ {(metrics?.monthly?.expenses || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                {selectedCurrency === 'BRL' ? 'R$' : '€'} {(metrics?.[selectedCurrency]?.monthly?.expenses || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
               </span>
             </div>
             <div className="border-t border-gray-200 pt-4">
@@ -451,10 +451,10 @@ const AnalyticsDashboard: React.FC<AnalyticsDashboardProps> = ({ token }) => {
                 <span className="font-semibold text-gray-700">Saldo do Mês</span>
                 <span
                   className={`text-2xl font-bold ${
-                    (metrics?.monthly?.balance || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'
+                    (metrics?.[selectedCurrency]?.monthly?.balance || 0) >= 0 ? 'text-blue-600' : 'text-orange-600'
                   }`}
                 >
-                  R$ {(metrics?.monthly?.balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  {selectedCurrency === 'BRL' ? 'R$' : '€'} {(metrics?.[selectedCurrency]?.monthly?.balance || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
                 </span>
               </div>
             </div>

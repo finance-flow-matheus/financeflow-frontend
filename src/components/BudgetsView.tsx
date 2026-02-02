@@ -74,14 +74,14 @@ export const BudgetsView: React.FC<{ data: any }> = ({ data }) => {
 
   const getEntityInfo = (b: Budget) => {
     if (b.entityType === 'category') {
-      const cat = categories.find((c: Category) => c.id === b.entityId);
+      const cat = categories.find((c: Category) => String(c.id) === String(b.entityId));
       return {
         name: cat?.name || 'Categoria Removida',
         type: cat?.type || TransactionType.EXPENSE
       };
     }
     return {
-      name: incomeSources.find((s: IncomeSource) => s.id === b.entityId)?.name || 'Fonte Removida',
+      name: incomeSources.find((s: IncomeSource) => String(s.id) === String(b.entityId))?.name || 'Fonte Removida',
       type: TransactionType.INCOME
     };
   };

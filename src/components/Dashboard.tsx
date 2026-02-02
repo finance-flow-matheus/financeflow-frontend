@@ -138,7 +138,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   }, [transactions, accounts, selectedMonth, selectedYear]);
 
   const getCurrencyData = (currency: Currency) => {
-    const balances = accounts.filter(acc => acc.currency === currency).map(acc => ({ name: acc.name, value: acc.balance }));
+    const balances = accounts.filter(acc => acc.currency === currency).map(acc => ({ name: acc.name, value: Number(acc.balance) }));
     const periodTransactions = transactions.filter(t => {
       const { month, year } = getDateInfo(t.date);
       const acc = accounts.find(a => a.id === t.accountId);

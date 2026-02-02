@@ -179,7 +179,9 @@ export const BudgetsView: React.FC<{ data: any }> = ({ data }) => {
               const percent = Math.min((actual / (b.amount || 1)) * 100, 100);
               const isIncome = type === TransactionType.INCOME;
               const isOver = !isIncome && actual > b.amount;
-              const symbol = b.currency === Currency.BRL ? 'R$' : '€';
+              // Se budget não tem currency, usar BRL como padrão
+              const budgetCurrency = b.currency || Currency.BRL;
+              const symbol = budgetCurrency === Currency.BRL ? 'R$' : '€';
 
               return (
                 <tr key={b.id} className="group hover:bg-slate-50/50 transition-colors">
@@ -197,8 +199,8 @@ export const BudgetsView: React.FC<{ data: any }> = ({ data }) => {
                     </div>
                   </td>
                   <td className="px-8 py-6">
-                    <span className={`text-[11px] font-black px-2 py-1 rounded-lg ${b.currency === Currency.BRL ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
-                      {b.currency}
+                    <span className={`text-[11px] font-black px-2 py-1 rounded-lg ${budgetCurrency === Currency.BRL ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
+                      {budgetCurrency}
                     </span>
                   </td>
                   <td className="px-8 py-6">

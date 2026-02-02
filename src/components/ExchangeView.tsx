@@ -218,7 +218,7 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
               const srcSym = srcAcc?.currency === Currency.BRL ? 'R$' : '€';
               const dstSym = dstAcc?.currency === Currency.BRL ? 'R$' : '€';
               
-              const rate = op.destinationAmount / op.sourceAmount;
+              const rate = Number(op.destinationAmount) / Number(op.sourceAmount);
 
               return (
                 <tr key={op.id} className="hover:bg-slate-50/50 transition-colors group">
@@ -230,7 +230,7 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
                   </td>
                   <td className="px-10 py-6">
                     <div className="flex flex-col">
-                      <span className="font-black text-rose-600 text-base">{srcSym} {op.sourceAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="font-black text-rose-600 text-base">{srcSym} {Number(op.sourceAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{srcAcc?.name || 'Conta Removida'}</span>
                     </div>
                   </td>
@@ -241,7 +241,7 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
                   </td>
                   <td className="px-10 py-6">
                     <div className="flex flex-col">
-                      <span className="font-black text-emerald-600 text-base">{dstSym} {op.destinationAmount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                      <span className="font-black text-emerald-600 text-base">{dstSym} {Number(op.destinationAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
                       <span className="text-[10px] text-slate-400 font-bold uppercase tracking-tight">{dstAcc?.name || 'Conta Removida'}</span>
                     </div>
                   </td>

@@ -231,7 +231,10 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
               const srcSym = srcAcc?.currency === Currency.BRL ? 'R$' : '€';
               const dstSym = dstAcc?.currency === Currency.BRL ? 'R$' : '€';
               
-              const rate = Number(op.destinationAmount) / Number(op.sourceAmount);
+              // Calcular taxa sempre como EUR → BRL (moeda menor → maior)
+              const rate = srcAcc?.currency === Currency.EUR 
+                ? Number(op.destinationAmount) / Number(op.sourceAmount) // EUR → BRL
+                : Number(op.sourceAmount) / Number(op.destinationAmount); // BRL → EUR (inverter)
 
               return (
                 <tr key={op.id} className="hover:bg-slate-50/50 transition-colors group">

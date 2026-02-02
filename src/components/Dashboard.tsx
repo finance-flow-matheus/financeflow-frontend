@@ -118,17 +118,30 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   const filteredStats = useMemo(() => {
     const filterByPeriod = (currency: Currency) => {
+      const today = new Date();
+      today.setHours(0, 0, 0, 0);
+      
       const periodTransactions = transactions.filter(t => {
         const { month, year } = getDateInfo(t.date);
         const acc = accounts.find(a => a.id === t.accountId);
         return acc?.currency === currency && month === selectedMonth && year === selectedYear;
       });
+      
+      // Transações até hoje
+      const currentTransactions = periodTransactions.filter(t => new Date(t.date) <= today);
+      
+      // Transações futuras (para previsão)
+      const futureTransactions = periodTransactions.filter(t => new Date(t.date) > today);
 
-      const income = periodTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
-      const expense = periodTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      const income = currentTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      const expense = currentTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      
+      const forecastIncome = income + futureTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      const forecastExpense = expense + futureTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      
       const balance = accounts.filter(a => a.currency === currency && !a.isInvestment).reduce((acc, curr) => acc + Number(curr.balance), 0);
 
-      return { income, expense, balance };
+      return { income, expense, balance, forecastIncome, forecastExpense };
     };
 
     return {
@@ -214,8 +227,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <StatCard title="Mensal Euro" balance={filteredStats.eur.balance} income={filteredStats.eur.income} expense={filteredStats.eur.expense} currency={Currency.EUR} color="border-blue-500" icon={Euro} />
-        <StatCard title="Mensal Real" balance={filteredStats.brl.balance} income={filteredStats.brl.income} expense={filteredStats.brl.expense} currency={Currency.BRL} color="border-emerald-500" icon={DollarSign} />
+        <StatCard title="Mensal Euro" balance={filteredStats.eur.balance} income={filteredStats.eur.income} expense={filteredStats.eur.expense} forecastIncome={filteredStats.eur.forecastIncome} forecastExpense={filteredStats.eur.forecastExpense} currency={Currency.EUR} color="border-blue-500" icon={Euro} />
+        <StatCard title="Mensal Real" balance={filteredStats.brl.balance} income={filteredStats.brl.income} expense={filteredStats.brl.expense} forecastIncome={filteredStats.brl.forecastIncome} forecastExpense={filteredStats.brl.forecastExpense} currency={Currency.BRL} color="border-emerald-500" icon={DollarSign} />
         
         <div className="bg-white rounded-[2rem] p-4 shadow-sm border-l-4 border-amber-500 border border-slate-100 flex flex-col justify-between">
           <div className="flex items-center justify-between mb-2">
@@ -319,21 +332,26 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   );
 };
 
-const StatCard = ({ title, balance, income, expense, currency, color, icon: Icon }: any) => (
-  <div className={`bg-white rounded-[2rem] p-4 shadow-sm border-l-4 ${color} border border-slate-100`}>
-    <div className="flex items-center justify-between mb-2">
-      <h3 className="text-slate-400 font-black text-[9px] uppercase tracking-widest">{title}</h3>
-      <div className={`p-1 rounded-lg bg-slate-50 text-slate-300`}><Icon className="w-3.5 h-3.5" /></div>
+const StatCard = ({ title, balance, income, expense, currency, color, icon: Icon, forecastIncome, forecastExpense }: any) => {
+  const symbol = currency === Currency.BRL ? 'R$' : '€';
+  const hasForecast = forecastIncome !== income || forecastExpense !== expense;
+  
+  return (
+    <div className={`bg-white rounded-[2rem] p-4 shadow-sm border-l-4 ${color} border border-slate-100`}>
+      <div className="flex items-center justify-between mb-2">
+        <h3 className="text-slate-400 font-black text-[9px] uppercase tracking-widest">{title}</h3>
+        <div className={`p-1 rounded-lg bg-slate-50 text-slate-300`}><Icon className="w-3.5 h-3.5" /></div>
+      </div>
+      <div className="mb-3">
+        <span className="text-xl font-black text-slate-900 tracking-tight">{symbol} {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+      </div>
+      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50" title={hasForecast ? `Previsão do mês: ${symbol} ${forecastIncome.toLocaleString('pt-BR')} entrada, ${symbol} ${forecastExpense.toLocaleString('pt-BR')} saída` : ''}>
+        <div><p className="text-[11px] font-bold text-emerald-600 flex items-center gap-1"><TrendingUp className="w-2.5 h-2.5" />{symbol} {income.toLocaleString('pt-BR')}</p></div>
+        <div><p className="text-[11px] font-bold text-rose-500 flex items-center gap-1"><TrendingDown className="w-2.5 h-2.5" />{symbol} {expense.toLocaleString('pt-BR')}</p></div>
+      </div>
     </div>
-    <div className="mb-3">
-      <span className="text-xl font-black text-slate-900 tracking-tight">{currency === Currency.BRL ? 'R$' : '€'} {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
-    </div>
-    <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
-      <div><p className="text-[11px] font-bold text-emerald-600 flex items-center gap-1"><TrendingUp className="w-2.5 h-2.5" />{currency === Currency.BRL ? 'R$' : '€'} {income.toLocaleString('pt-BR')}</p></div>
-      <div><p className="text-[11px] font-bold text-rose-500 flex items-center gap-1"><TrendingDown className="w-2.5 h-2.5" />{currency === Currency.BRL ? 'R$' : '€'} {expense.toLocaleString('pt-BR')}</p></div>
-    </div>
-  </div>
-);
+  );
+};
 
 const DistributionChart = ({ title, data, icon: Icon, colorClass, currencySymbol }: any) => (
   <div className="bg-white p-4 rounded-3xl shadow-sm border border-slate-100 flex flex-col overflow-hidden">

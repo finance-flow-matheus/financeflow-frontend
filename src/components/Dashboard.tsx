@@ -40,7 +40,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   useEffect(() => {
     const fetchRate = async () => {
       try {
-        const response = await fetch('https://open.er-api.com/v4/latest/EUR');
+        const response = await fetch('https://open.er-api.com/v6/latest/EUR');
         const json = await response.json();
         if (json && json.rates && json.rates.BRL) setExchangeRate(json.rates.BRL);
       } catch (e) { console.error(e); } finally { setIsLoadingRate(false); }

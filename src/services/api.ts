@@ -84,13 +84,13 @@ export const api = {
 
   entities: {
     getCategories: () => api.request('/categories'),
-    getSources: () => api.request('/sources'),
+    getSources: () => api.request('/income-sources'),
     createCategory: (data: any) => api.request('/categories', { method: 'POST', body: JSON.stringify(data) }),
     updateCategory: (id: string, data: any) => api.request(`/categories/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
     deleteCategory: (id: string) => api.request(`/categories/${id}`, { method: 'DELETE' }),
-    createSource: (data: any) => api.request('/sources', { method: 'POST', body: JSON.stringify(data) }),
-    updateSource: (id: string, data: any) => api.request(`/sources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
-    deleteSource: (id: string) => api.request(`/sources/${id}`, { method: 'DELETE' }),
+    createSource: (data: any) => api.request('/income-sources', { method: 'POST', body: JSON.stringify(data) }),
+    updateSource: (id: string, data: any) => api.request(`/income-sources/${id}`, { method: 'PUT', body: JSON.stringify(data) }),
+    deleteSource: (id: string) => api.request(`/income-sources/${id}`, { method: 'DELETE' }),
   },
 
   budgets: {
@@ -107,8 +107,8 @@ export const api = {
   },
 
   exchange: {
-    getAll: () => api.request('/exchange'),
-    create: (data: any) => api.request('/exchange', { method: 'POST', body: JSON.stringify(data) }),
+    getAll: () => api.request('/exchanges'),
+    create: (data: any) => api.request('/exchanges', { method: 'POST', body: JSON.stringify(data) }),
   },
 
   assets: {

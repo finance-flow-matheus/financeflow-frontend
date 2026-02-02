@@ -39,11 +39,11 @@ export const BudgetsView: React.FC<{ data: any }> = ({ data }) => {
       const accCurrency = accounts.find((a: any) => a.id === t.accountId)?.currency;
       if (accCurrency !== budget.currency) return acc;
 
-      if (budget.entityType === 'category' && t.categoryId === budget.entityId) {
+      if (budget.entityType === 'category' && String(t.categoryId) === String(budget.entityId)) {
         return acc + t.amount;
       }
 
-      if (budget.entityType === 'source' && t.incomeSourceId === budget.entityId) {
+      if (budget.entityType === 'source' && String(t.incomeSourceId) === String(budget.entityId)) {
         return acc + t.amount;
       }
 

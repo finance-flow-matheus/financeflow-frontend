@@ -161,8 +161,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       return { 
         ...b, 
         actual, 
-        name: b.entityType === 'category' ? categories.find(c => c.id === b.entityId)?.name || 'Desconhecido' : incomeSources.find(s => s.id === b.entityId)?.name || 'Fonte',
-        isIncome: b.entityType === 'category' ? categories.find(c => c.id === b.entityId)?.type === TransactionType.INCOME : true
+        name: b.entityType === 'category' ? categories.find(c => String(c.id) === String(b.entityId))?.name || 'Desconhecido' : incomeSources.find(s => String(s.id) === String(b.entityId))?.name || 'Fonte',
+        isIncome: b.entityType === 'category' ? categories.find(c => String(c.id) === String(b.entityId))?.type === TransactionType.INCOME : true
       };
     });
 

@@ -112,11 +112,19 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   const filteredStats = useMemo(() => {
     const filterByPeriod = (currency: Currency) => {
+      console.log(`[DEBUG] Filtering for ${currency}, Month: ${selectedMonth}, Year: ${selectedYear}`);
+      console.log('[DEBUG] All transactions:', transactions);
+      console.log('[DEBUG] All accounts:', accounts);
+      
       const periodTransactions = transactions.filter(t => {
         const d = new Date(t.date);
         const acc = accounts.find(a => a.id === t.accountId);
-        return acc?.currency === currency && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+        const match = acc?.currency === currency && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+        if (match) console.log('[DEBUG] Matched transaction:', t, 'Account:', acc);
+        return match;
       });
+      
+      console.log(`[DEBUG] Period transactions for ${currency}:`, periodTransactions);
 
       const income = periodTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
       const expense = periodTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);

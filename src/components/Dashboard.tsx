@@ -37,6 +37,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const [selectedMonth, setSelectedMonth] = useState<number>(now.getMonth());
   const [selectedYear, setSelectedYear] = useState<number>(now.getFullYear());
 
+  // Helper robusto para extrair mês e ano sem problemas de fuso horário
+  const getDateInfo = (dateStr: string) => {
+    const [year, month] = dateStr.split('-').map(Number);
+    return { month: month - 1, year };
+  };
+
   useEffect(() => {
     const fetchRate = async () => {
       try {
@@ -112,19 +118,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   const filteredStats = useMemo(() => {
     const filterByPeriod = (currency: Currency) => {
-      console.log(`[DEBUG] Filtering for ${currency}, Month: ${selectedMonth}, Year: ${selectedYear}`);
-      console.log('[DEBUG] All transactions:', transactions);
-      console.log('[DEBUG] All accounts:', accounts);
-      
       const periodTransactions = transactions.filter(t => {
-        const d = new Date(t.date);
+        const { month, year } = getDateInfo(t.date);
         const acc = accounts.find(a => a.id === t.accountId);
-        const match = acc?.currency === currency && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
-        if (match) console.log('[DEBUG] Matched transaction:', t, 'Account:', acc);
-        return match;
+        return acc?.currency === currency && month === selectedMonth && year === selectedYear;
       });
-      
-      console.log(`[DEBUG] Period transactions for ${currency}:`, periodTransactions);
 
       const income = periodTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
       const expense = periodTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
@@ -142,9 +140,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const getCurrencyData = (currency: Currency) => {
     const balances = accounts.filter(acc => acc.currency === currency).map(acc => ({ name: acc.name, value: acc.balance }));
     const periodTransactions = transactions.filter(t => {
+      const { month, year } = getDateInfo(t.date);
       const acc = accounts.find(a => a.id === t.accountId);
-      const d = new Date(t.date);
-      return acc?.currency === currency && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
+      return acc?.currency === currency && month === selectedMonth && year === selectedYear;
     });
 
     const expenseMap = new Map<string, number>();
@@ -157,8 +155,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
     const currencyBudgets = budgets.filter(b => b.currency === currency).map(b => {
       const actual = transactions.reduce((acc, t) => {
-        const d = new Date(t.date);
-        if (d.getMonth() !== selectedMonth || d.getFullYear() !== selectedYear) return acc;
+        const { month, year } = getDateInfo(t.date);
+        if (month !== selectedMonth || year !== selectedYear) return acc;
         const accCurrency = accounts.find(a => a.id === t.accountId)?.currency;
         if (accCurrency !== b.currency) return acc;
         if (b.entityType === 'category' && String(t.categoryId) === String(b.entityId)) return acc + Number(t.amount);

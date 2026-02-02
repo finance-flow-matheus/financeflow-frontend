@@ -51,13 +51,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
   const yearOptions = [now.getFullYear(), now.getFullYear() - 1];
 
   const netWorthStats = useMemo(() => {
-    const totalAssetsBRL = accounts.filter(a => a.currency === Currency.BRL).reduce((acc, curr) => acc + curr.balance, 0) +
-                          assets.filter(as => as.currency === Currency.BRL).reduce((acc, curr) => acc + curr.value, 0);
-    const totalAssetsEUR = accounts.filter(a => a.currency === Currency.EUR).reduce((acc, curr) => acc + curr.balance, 0) +
-                          assets.filter(as => as.currency === Currency.EUR).reduce((acc, curr) => acc + curr.value, 0);
+    const totalAssetsBRL = accounts.filter(a => a.currency === Currency.BRL).reduce((acc, curr) => acc + Number(curr.balance), 0) +
+                          assets.filter(as => as.currency === Currency.BRL).reduce((acc, curr) => acc + Number(curr.value), 0);
+    const totalAssetsEUR = accounts.filter(a => a.currency === Currency.EUR).reduce((acc, curr) => acc + Number(curr.balance), 0) +
+                          assets.filter(as => as.currency === Currency.EUR).reduce((acc, curr) => acc + Number(curr.value), 0);
     
-    const totalLiabsBRL = liabilities.filter(l => l.currency === Currency.BRL).reduce((acc, curr) => acc + curr.amount, 0);
-    const totalLiabsEUR = liabilities.filter(l => l.currency === Currency.EUR).reduce((acc, curr) => acc + curr.amount, 0);
+    const totalLiabsBRL = liabilities.filter(l => l.currency === Currency.BRL).reduce((acc, curr) => acc + Number(curr.amount), 0);
+    const totalLiabsEUR = liabilities.filter(l => l.currency === Currency.EUR).reduce((acc, curr) => acc + Number(curr.amount), 0);
 
     const netBRL = totalAssetsBRL - totalLiabsBRL;
     const netEUR = totalAssetsEUR - totalLiabsEUR;
@@ -81,17 +81,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       const accBalances = accounts.map(acc => {
         const accFutureTransactions = futureTransactions.filter(ft => ft.accountId === acc.id);
         const netImpact = accFutureTransactions.reduce((accNet, t) => 
-          t.type === TransactionType.INCOME ? accNet + t.amount : accNet - t.amount, 0);
-        return { ...acc, historicalBalance: acc.balance - netImpact };
+          t.type === TransactionType.INCOME ? accNet + Number(t.amount) : accNet - Number(t.amount), 0);
+        return { ...acc, historicalBalance: Number(acc.balance) - netImpact };
       });
 
-      const histAssetsBRL = accBalances.filter(a => a.currency === Currency.BRL).reduce((acc, curr) => acc + curr.historicalBalance, 0) +
-                            assets.filter(as => as.currency === Currency.BRL).reduce((acc, curr) => acc + curr.value, 0);
-      const histAssetsEUR = accBalances.filter(a => a.currency === Currency.EUR).reduce((acc, curr) => acc + curr.historicalBalance, 0) +
-                            assets.filter(as => as.currency === Currency.EUR).reduce((acc, curr) => acc + curr.value, 0);
+      const histAssetsBRL = accBalances.filter(a => a.currency === Currency.BRL).reduce((acc, curr) => acc + Number(curr.historicalBalance), 0) +
+                            assets.filter(as => as.currency === Currency.BRL).reduce((acc, curr) => acc + Number(curr.value), 0);
+      const histAssetsEUR = accBalances.filter(a => a.currency === Currency.EUR).reduce((acc, curr) => acc + Number(curr.historicalBalance), 0) +
+                            assets.filter(as => as.currency === Currency.EUR).reduce((acc, curr) => acc + Number(curr.value), 0);
       
-      const histLiabsBRL = liabilities.filter(l => l.currency === Currency.BRL).reduce((acc, curr) => acc + curr.amount, 0);
-      const histLiabsEUR = liabilities.filter(l => l.currency === Currency.EUR).reduce((acc, curr) => acc + curr.amount, 0);
+      const histLiabsBRL = liabilities.filter(l => l.currency === Currency.BRL).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      const histLiabsEUR = liabilities.filter(l => l.currency === Currency.EUR).reduce((acc, curr) => acc + Number(curr.amount), 0);
 
       const netBRL = histAssetsBRL - histLiabsBRL;
       const netEUR = histAssetsEUR - histLiabsEUR;
@@ -118,9 +118,9 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         return acc?.currency === currency && d.getMonth() === selectedMonth && d.getFullYear() === selectedYear;
       });
 
-      const income = periodTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + curr.amount, 0);
-      const expense = periodTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + curr.amount, 0);
-      const balance = accounts.filter(a => a.currency === currency && !a.isInvestment).reduce((acc, curr) => acc + curr.balance, 0);
+      const income = periodTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      const expense = periodTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      const balance = accounts.filter(a => a.currency === currency && !a.isInvestment).reduce((acc, curr) => acc + Number(curr.balance), 0);
 
       return { income, expense, balance };
     };
@@ -140,11 +140,11 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
     });
 
     const expenseMap = new Map<string, number>();
-    periodTransactions.forEach(t => { if (t.type === TransactionType.EXPENSE) expenseMap.set(t.categoryId, (expenseMap.get(t.categoryId) || 0) + t.amount); });
+    periodTransactions.forEach(t => { if (t.type === TransactionType.EXPENSE) expenseMap.set(t.categoryId, (expenseMap.get(t.categoryId) || 0) + Number(t.amount)); });
     const expenses = Array.from(expenseMap.entries()).map(([id, value]) => ({ name: categories.find(c => c.id === id)?.name || 'Outros', value }));
 
     const incomeMap = new Map<string, number>();
-    periodTransactions.forEach(t => { if (t.type === TransactionType.INCOME && t.incomeSourceId) incomeMap.set(t.incomeSourceId, (incomeMap.get(t.incomeSourceId) || 0) + t.amount); });
+    periodTransactions.forEach(t => { if (t.type === TransactionType.INCOME && t.incomeSourceId) incomeMap.set(t.incomeSourceId, (incomeMap.get(t.incomeSourceId) || 0) + Number(t.amount)); });
     const incomes = Array.from(incomeMap.entries()).map(([id, value]) => ({ name: incomeSources.find(s => s.id === id)?.name || 'Outros', value }));
 
     const currencyBudgets = budgets.filter(b => b.currency === currency).map(b => {
@@ -153,8 +153,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         if (d.getMonth() !== selectedMonth || d.getFullYear() !== selectedYear) return acc;
         const accCurrency = accounts.find(a => a.id === t.accountId)?.currency;
         if (accCurrency !== b.currency) return acc;
-        if (b.entityType === 'category' && String(t.categoryId) === String(b.entityId)) return acc + t.amount;
-        if (b.entityType === 'source' && String(t.incomeSourceId) === String(b.entityId)) return acc + t.amount;
+        if (b.entityType === 'category' && String(t.categoryId) === String(b.entityId)) return acc + Number(t.amount);
+        if (b.entityType === 'source' && String(t.incomeSourceId) === String(b.entityId)) return acc + Number(t.amount);
         return acc;
       }, 0);
 
@@ -174,8 +174,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 
   const emergencyGoal = goals.find(g => g.category === 'emergency');
   const emergencyAccount = emergencyGoal ? accounts.find(a => a.id === emergencyGoal.accountId) : null;
-  const emergencyBalance = emergencyAccount?.balance || 0;
-  const emergencyProgress = emergencyGoal ? Math.min((emergencyBalance / emergencyGoal.targetAmount) * 100, 100) : 0;
+  const emergencyBalance = Number(emergencyAccount?.balance || 0);
+  const emergencyProgress = emergencyGoal ? Math.min((emergencyBalance / Number(emergencyGoal.targetAmount)) * 100, 100) : 0;
 
   return (
     <div className="space-y-10 pb-20">

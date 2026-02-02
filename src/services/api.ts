@@ -8,7 +8,7 @@ import { User } from '../types.ts';
  */
 const BASE_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
-const getAuthHeader = () => {
+const getAuthHeader = (): Record<string, string> => {
   const token = localStorage.getItem('ff_token');
   return token ? { 'Authorization': `Bearer ${token}` } : {};
 };

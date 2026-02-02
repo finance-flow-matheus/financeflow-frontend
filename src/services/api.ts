@@ -17,15 +17,21 @@ export const api = {
   async request(endpoint: string, options: RequestInit = {}) {
     const url = `${BASE_URL}${endpoint}`;
     
+    // Timeout de 30 segundos para cold start do Railway
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 30000);
+    
     try {
       const response = await fetch(url, {
         ...options,
+        signal: controller.signal,
         headers: {
           'Content-Type': 'application/json',
           ...getAuthHeader(),
           ...options.headers,
         },
       });
+      clearTimeout(timeoutId);
 
       if (response.status === 401) {
         console.warn("[FinanceFlow] Session expired or unauthorized. Clearing local storage.");
@@ -44,11 +50,14 @@ export const api = {
 
       return data;
     } catch (error: any) {
+      clearTimeout(timeoutId);
       // Log estruturado para debug profissional
-      console.groupCollapsed(`%c[API Error] %c${options.method || 'GET'} ${endpoint}`, "color: #ef4444; font-weight: bold", "color: #64748b; font-weight: normal");
-      console.error("URL:", url);
-      console.error("Message:", error.message);
-      console.groupEnd();
+      console.error(`[API Error] ${options.method || 'GET'} ${endpoint}:`, error.message);
+      
+      if (error.name === 'AbortError') {
+        throw new Error('Servidor demorou muito para responder. Tente novamente.');
+      }
+      
       throw error;
     }
   },

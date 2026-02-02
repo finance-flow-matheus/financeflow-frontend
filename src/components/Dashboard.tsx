@@ -153,8 +153,8 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         if (d.getMonth() !== selectedMonth || d.getFullYear() !== selectedYear) return acc;
         const accCurrency = accounts.find(a => a.id === t.accountId)?.currency;
         if (accCurrency !== b.currency) return acc;
-        if (b.entityType === 'category' && t.categoryId === b.entityId) return acc + t.amount;
-        if (b.entityType === 'source' && t.incomeSourceId === b.entityId) return acc + t.amount;
+        if (b.entityType === 'category' && String(t.categoryId) === String(b.entityId)) return acc + t.amount;
+        if (b.entityType === 'source' && String(t.incomeSourceId) === String(b.entityId)) return acc + t.amount;
         return acc;
       }, 0);
 

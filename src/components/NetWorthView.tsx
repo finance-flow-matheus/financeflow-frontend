@@ -48,7 +48,7 @@ export const NetWorthView: React.FC<{ data: any }> = ({ data }) => {
     const fetchRate = async () => {
       try {
         setIsLoadingRate(true);
-        const response = await fetch('https://open.er-api.com/v4/latest/EUR');
+        const response = await fetch('https://open.er-api.com/v6/latest/EUR');
         const json = await response.json();
         if (json && json.rates && json.rates.BRL) {
           setExchangeRate(json.rates.BRL);

@@ -6,7 +6,7 @@ import { User } from '../types.ts';
  * No Vite, apenas import.meta.env.VITE_* é substituído em tempo de build.
  * Process.env e window.VITE_* NÃO funcionam após o bundling.
  */
-const BASE_URL: string = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
+const BASE_URL: string = import.meta.env.VITE_API_URL || 'https://web-production-cce50.up.railway.app/api';
 
 const getAuthHeader = (): Record<string, string> => {
   const token = localStorage.getItem('ff_token');

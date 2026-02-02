@@ -37,7 +37,20 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
       alert("A conta de origem e destino não podem ser a mesma.");
       return;
     }
-    registerExchange(formData);
+    
+    // Transformar dados para o formato esperado pelo backend
+    const exchangeData = {
+      fromAccountId: parseInt(formData.sourceAccountId),
+      toAccountId: parseInt(formData.destinationAccountId),
+      fromAmount: Number(formData.sourceAmount),
+      toAmount: Number(formData.destinationAmount),
+      fromCurrency: sourceAccount?.currency || Currency.BRL,
+      toCurrency: destinationAccount?.currency || Currency.EUR,
+      exchangeRate: Number(formData.destinationAmount) / Number(formData.sourceAmount),
+      date: formData.date
+    };
+    
+    registerExchange(exchangeData);
     setFormData({
       sourceAccountId: '',
       sourceAmount: 0,

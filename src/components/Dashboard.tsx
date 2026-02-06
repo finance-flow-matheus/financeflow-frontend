@@ -140,6 +140,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       let forecastIncome = income + futureTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
       let forecastExpense = expense + futureTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
       
+      console.log('[DEBUG] Currency:', currency, 'Exchanges:', exchanges);
       // Para EUR, incluir exchanges
       if (currency === Currency.EUR && exchanges) {
         console.log('[DEBUG] Exchanges disponíveis:', exchanges);

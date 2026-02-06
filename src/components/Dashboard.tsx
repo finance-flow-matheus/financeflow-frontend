@@ -17,6 +17,7 @@ interface DashboardProps {
     goals: Goal[];
     assets: Asset[];
     liabilities: Liability[];
+    exchanges: any[];
   };
 }
 
@@ -28,7 +29,7 @@ const MONTHS_NAMES = [
 ];
 
 export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
-  const { transactions, categories, incomeSources, accounts, budgets, goals, assets, liabilities } = data;
+  const { transactions, categories, incomeSources, accounts, budgets, goals, assets, liabilities, exchanges } = data;
   const [exchangeRate, setExchangeRate] = useState<number>(6.0);
   const [isLoadingRate, setIsLoadingRate] = useState(true);
 
@@ -133,11 +134,45 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       // Transações futuras (para previsão)
       const futureTransactions = periodTransactions.filter(t => new Date(t.date) > today);
 
-      const income = currentTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
-      const expense = currentTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      let income = currentTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      let expense = currentTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
       
-      const forecastIncome = income + futureTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
-      const forecastExpense = expense + futureTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      let forecastIncome = income + futureTransactions.filter(t => t.type === TransactionType.INCOME).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      let forecastExpense = expense + futureTransactions.filter(t => t.type === TransactionType.EXPENSE).reduce((acc, curr) => acc + Number(curr.amount), 0);
+      
+      // Para EUR, incluir exchanges
+      if (currency === Currency.EUR && exchanges) {
+        const periodExchanges = exchanges.filter(ex => {
+          const { month, year } = getDateInfo(ex.date);
+          return month === selectedMonth && year === selectedYear;
+        });
+        
+        const currentExchanges = periodExchanges.filter(ex => new Date(ex.date) <= today);
+        const futureExchanges = periodExchanges.filter(ex => new Date(ex.date) > today);
+        
+        // Entrada EUR: quando to_currency = EUR (ou toCurrency)
+        const exchangeIncome = currentExchanges
+          .filter(ex => (ex.toCurrency || ex.to_currency) === 'EUR')
+          .reduce((acc, ex) => acc + Number(ex.destinationAmount || ex.to_amount || 0), 0);
+        
+        // Saída EUR: quando from_currency = EUR (ou fromCurrency)
+        const exchangeExpense = currentExchanges
+          .filter(ex => (ex.fromCurrency || ex.from_currency) === 'EUR')
+          .reduce((acc, ex) => acc + Number(ex.sourceAmount || ex.from_amount || 0), 0);
+        
+        const forecastExchangeIncome = futureExchanges
+          .filter(ex => (ex.toCurrency || ex.to_currency) === 'EUR')
+          .reduce((acc, ex) => acc + Number(ex.destinationAmount || ex.to_amount || 0), 0);
+        
+        const forecastExchangeExpense = futureExchanges
+          .filter(ex => (ex.fromCurrency || ex.from_currency) === 'EUR')
+          .reduce((acc, ex) => acc + Number(ex.sourceAmount || ex.from_amount || 0), 0);
+        
+        income += exchangeIncome;
+        expense += exchangeExpense;
+        forecastIncome += exchangeIncome + forecastExchangeIncome;
+        forecastExpense += exchangeExpense + forecastExchangeExpense;
+      }
       
       const balance = accounts.filter(a => a.currency === currency && !a.isInvestment).reduce((acc, curr) => acc + Number(curr.balance), 0);
 
@@ -148,7 +183,7 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       brl: filterByPeriod(Currency.BRL),
       eur: filterByPeriod(Currency.EUR)
     };
-  }, [transactions, accounts, selectedMonth, selectedYear]);
+  }, [transactions, accounts, exchanges, selectedMonth, selectedYear]);
 
   const getCurrencyData = (currency: Currency) => {
     const balances = accounts.filter(acc => acc.currency === currency).map(acc => ({ name: acc.name, value: Number(acc.balance) }));

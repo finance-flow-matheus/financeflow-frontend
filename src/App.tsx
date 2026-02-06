@@ -178,7 +178,7 @@ const App: React.FC = () => {
             </div>
           ) : (
             <div className="animate-in fade-in zoom-in-95 duration-700">
-              {activeTab === 'dashboard' && <Dashboard data={financeData as any} />}
+              {activeTab === 'dashboard' && <Dashboard data={{...financeData, exchanges: financeData.exchangeOperations} as any} />}
               {activeTab === 'accounts' && <AccountsView data={financeData as any} />}
               {activeTab === 'transactions' && <TransactionsView data={financeData as any} />}
               {activeTab === 'exchange' && <ExchangeView data={financeData as any} />}

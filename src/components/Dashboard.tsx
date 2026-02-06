@@ -142,10 +142,12 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
       
       // Para EUR, incluir exchanges
       if (currency === Currency.EUR && exchanges) {
+        console.log('[DEBUG] Exchanges disponíveis:', exchanges);
         const periodExchanges = exchanges.filter(ex => {
           const { month, year } = getDateInfo(ex.date);
           return month === selectedMonth && year === selectedYear;
         });
+        console.log('[DEBUG] Exchanges do período:', periodExchanges);
         
         const currentExchanges = periodExchanges.filter(ex => new Date(ex.date) <= today);
         const futureExchanges = periodExchanges.filter(ex => new Date(ex.date) > today);
@@ -154,11 +156,13 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         const exchangeIncome = currentExchanges
           .filter(ex => (ex.toCurrency || ex.to_currency) === 'EUR')
           .reduce((acc, ex) => acc + Number(ex.destinationAmount || ex.to_amount || 0), 0);
+        console.log('[DEBUG] Exchange Income EUR:', exchangeIncome);
         
         // Saída EUR: quando from_currency = EUR (ou fromCurrency)
         const exchangeExpense = currentExchanges
           .filter(ex => (ex.fromCurrency || ex.from_currency) === 'EUR')
           .reduce((acc, ex) => acc + Number(ex.sourceAmount || ex.from_amount || 0), 0);
+        console.log('[DEBUG] Exchange Expense EUR:', exchangeExpense);
         
         const forecastExchangeIncome = futureExchanges
           .filter(ex => (ex.toCurrency || ex.to_currency) === 'EUR')

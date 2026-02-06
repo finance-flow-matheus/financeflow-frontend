@@ -356,7 +356,7 @@ const StatCard = ({ title, balance, income, expense, currency, color, icon: Icon
         <div><p className="text-[11px] font-bold text-rose-500 flex items-center gap-1"><TrendingDown className="w-2.5 h-2.5" />{symbol} {expense.toLocaleString('pt-BR')}</p></div>
       </div>
       
-      {hasForecast && showTooltip && (
+      {showTooltip && (
         <div className="absolute top-full left-0 mt-2 w-full bg-slate-900 text-white rounded-xl p-3 shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
           <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-2">Previsão do Mês</div>
           <div className="space-y-1.5">

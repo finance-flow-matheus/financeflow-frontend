@@ -333,11 +333,17 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 };
 
 const StatCard = ({ title, balance, income, expense, currency, color, icon: Icon, forecastIncome, forecastExpense }: any) => {
+  const [showTooltip, setShowTooltip] = React.useState(false);
   const symbol = currency === Currency.BRL ? 'R$' : '€';
   const hasForecast = forecastIncome !== income || forecastExpense !== expense;
+  const forecastBalance = balance + (forecastIncome - income) - (forecastExpense - expense);
   
   return (
-    <div className={`bg-white rounded-[2rem] p-4 shadow-sm border-l-4 ${color} border border-slate-100`}>
+    <div 
+      className={`bg-white rounded-[2rem] p-4 shadow-sm border-l-4 ${color} border border-slate-100 relative`}
+      onMouseEnter={() => setShowTooltip(true)}
+      onMouseLeave={() => setShowTooltip(false)}
+    >
       <div className="flex items-center justify-between mb-2">
         <h3 className="text-slate-400 font-black text-[9px] uppercase tracking-widest">{title}</h3>
         <div className={`p-1 rounded-lg bg-slate-50 text-slate-300`}><Icon className="w-3.5 h-3.5" /></div>
@@ -345,10 +351,30 @@ const StatCard = ({ title, balance, income, expense, currency, color, icon: Icon
       <div className="mb-3">
         <span className="text-xl font-black text-slate-900 tracking-tight">{symbol} {balance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
       </div>
-      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50" title={hasForecast ? `Previsão do mês: ${symbol} ${forecastIncome.toLocaleString('pt-BR')} entrada, ${symbol} ${forecastExpense.toLocaleString('pt-BR')} saída` : ''}>
+      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-50">
         <div><p className="text-[11px] font-bold text-emerald-600 flex items-center gap-1"><TrendingUp className="w-2.5 h-2.5" />{symbol} {income.toLocaleString('pt-BR')}</p></div>
         <div><p className="text-[11px] font-bold text-rose-500 flex items-center gap-1"><TrendingDown className="w-2.5 h-2.5" />{symbol} {expense.toLocaleString('pt-BR')}</p></div>
       </div>
+      
+      {hasForecast && showTooltip && (
+        <div className="absolute top-full left-0 mt-2 w-full bg-slate-900 text-white rounded-xl p-3 shadow-xl z-50 animate-in fade-in slide-in-from-top-2 duration-200">
+          <div className="text-[9px] font-bold uppercase tracking-wider text-slate-400 mb-2">Previsão do Mês</div>
+          <div className="space-y-1.5">
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-slate-300">Saldo Previsto</span>
+              <span className="text-sm font-bold">{symbol} {forecastBalance.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-emerald-400">Entradas</span>
+              <span className="text-sm font-bold text-emerald-400">{symbol} {forecastIncome.toLocaleString('pt-BR')}</span>
+            </div>
+            <div className="flex justify-between items-center">
+              <span className="text-[10px] text-rose-400">Saídas</span>
+              <span className="text-sm font-bold text-rose-400">{symbol} {forecastExpense.toLocaleString('pt-BR')}</span>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

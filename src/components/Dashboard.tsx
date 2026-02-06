@@ -153,25 +153,37 @@ export const Dashboard: React.FC<DashboardProps> = ({ data }) => {
         const currentExchanges = periodExchanges.filter(ex => new Date(ex.date) <= today);
         const futureExchanges = periodExchanges.filter(ex => new Date(ex.date) > today);
         
-        // Entrada EUR: quando to_currency = EUR (ou toCurrency)
+        // Entrada EUR: quando destinationAccountId é uma conta EUR
         const exchangeIncome = currentExchanges
-          .filter(ex => (ex.toCurrency || ex.to_currency) === 'EUR')
-          .reduce((acc, ex) => acc + Number(ex.destinationAmount || ex.to_amount || 0), 0);
+          .filter(ex => {
+            const destAccount = accounts.find(a => a.id === ex.destinationAccountId);
+            return destAccount?.currency === 'EUR';
+          })
+          .reduce((acc, ex) => acc + Number(ex.destinationAmount || 0), 0);
         console.log('[DEBUG] Exchange Income EUR:', exchangeIncome);
         
-        // Saída EUR: quando from_currency = EUR (ou fromCurrency)
+        // Saída EUR: quando sourceAccountId é uma conta EUR
         const exchangeExpense = currentExchanges
-          .filter(ex => (ex.fromCurrency || ex.from_currency) === 'EUR')
-          .reduce((acc, ex) => acc + Number(ex.sourceAmount || ex.from_amount || 0), 0);
+          .filter(ex => {
+            const sourceAccount = accounts.find(a => a.id === ex.sourceAccountId);
+            return sourceAccount?.currency === 'EUR';
+          })
+          .reduce((acc, ex) => acc + Number(ex.sourceAmount || 0), 0);
         console.log('[DEBUG] Exchange Expense EUR:', exchangeExpense);
         
         const forecastExchangeIncome = futureExchanges
-          .filter(ex => (ex.toCurrency || ex.to_currency) === 'EUR')
-          .reduce((acc, ex) => acc + Number(ex.destinationAmount || ex.to_amount || 0), 0);
+          .filter(ex => {
+            const destAccount = accounts.find(a => a.id === ex.destinationAccountId);
+            return destAccount?.currency === 'EUR';
+          })
+          .reduce((acc, ex) => acc + Number(ex.destinationAmount || 0), 0);
         
         const forecastExchangeExpense = futureExchanges
-          .filter(ex => (ex.fromCurrency || ex.from_currency) === 'EUR')
-          .reduce((acc, ex) => acc + Number(ex.sourceAmount || ex.from_amount || 0), 0);
+          .filter(ex => {
+            const sourceAccount = accounts.find(a => a.id === ex.sourceAccountId);
+            return sourceAccount?.currency === 'EUR';
+          })
+          .reduce((acc, ex) => acc + Number(ex.sourceAmount || 0), 0);
         
         income += exchangeIncome;
         expense += exchangeExpense;

@@ -212,7 +212,8 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
              </div>
           </div>
         </div>
-        <table className="w-full text-left">
+        {/* Desktop Table */}
+        <table className="hidden md:table w-full text-left">
           <thead className="bg-slate-50 text-slate-400 text-[10px] font-black uppercase tracking-[0.2em] border-b border-slate-100">
             <tr>
               <th className="px-10 py-5">Data / Tipo</th>
@@ -278,6 +279,67 @@ export const ExchangeView: React.FC<{ data: any }> = ({ data }) => {
             )}
           </tbody>
         </table>
+
+        {/* Mobile Cards */}
+        <div className="md:hidden p-4 space-y-3">
+          {exchangeOperations.slice().reverse().map((op: any) => {
+            const srcAcc = accounts.find((a: any) => a.id === op.sourceAccountId);
+            const dstAcc = accounts.find((a: any) => a.id === op.destinationAccountId);
+            const isOpExchange = srcAcc?.currency !== dstAcc?.currency;
+            
+            const srcSym = srcAcc?.currency === Currency.BRL ? 'R$' : '€';
+            const dstSym = dstAcc?.currency === Currency.BRL ? 'R$' : '€';
+            
+            const rate = srcAcc?.currency === Currency.EUR 
+              ? Number(op.destinationAmount) / Number(op.sourceAmount)
+              : Number(op.sourceAmount) / Number(op.destinationAmount);
+
+            return (
+              <div key={op.id} className="bg-slate-50 rounded-2xl p-4 border border-slate-100">
+                <div className="flex items-center justify-between mb-3">
+                  <div>
+                    <p className="text-sm font-bold text-slate-900">{new Date(op.date).toLocaleDateString('pt-BR')}</p>
+                    <p className={`text-xs font-bold uppercase ${isOpExchange ? 'text-blue-500' : 'text-slate-400'}`}>
+                      {isOpExchange ? '🔄 Câmbio' : '↔️ Transferência'}
+                    </p>
+                  </div>
+                  {isOpExchange && (
+                    <span className="text-xs font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg border border-blue-100">
+                      TX: {rate.toFixed(4)}
+                    </span>
+                  )}
+                </div>
+                
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-0.5">Saída</p>
+                      <p className="text-xs text-slate-400">{srcAcc?.name || 'Conta Removida'}</p>
+                    </div>
+                    <p className="font-bold text-rose-600">{srcSym} {Number(op.sourceAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                  
+                  <div className="flex items-center justify-center">
+                    <div className={`w-6 h-6 rounded-full flex items-center justify-center ${isOpExchange ? 'bg-blue-100 text-blue-500' : 'bg-slate-200 text-slate-400'}`}>
+                      <ArrowRight className="w-3 h-3" />
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-xs text-slate-500 mb-0.5">Entrada</p>
+                      <p className="text-xs text-slate-400">{dstAcc?.name || 'Conta Removida'}</p>
+                    </div>
+                    <p className="font-bold text-emerald-600">{dstSym} {Number(op.destinationAmount || 0).toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+          {exchangeOperations.length === 0 && (
+            <div className="py-12 text-center text-slate-400 italic">Nenhuma movimentação registrada.</div>
+          )}
+        </div>
       </div>
     </div>
   );

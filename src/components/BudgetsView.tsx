@@ -160,7 +160,8 @@ export const BudgetsView: React.FC<{ data: any }> = ({ data }) => {
         </form>
       )}
 
-      <div className="bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-[2.5rem] shadow-sm border border-slate-100 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-slate-50 border-b border-slate-100">
             <tr>
@@ -283,7 +284,81 @@ export const BudgetsView: React.FC<{ data: any }> = ({ data }) => {
              <h3 className="font-black text-rose-900 uppercase tracking-tight">Limites de Gasto</h3>
            </div>
            <p className="text-xs text-rose-700 font-medium leading-relaxed">Cuidado com as categorias em vermelho! Elas indicam que você ultrapassou o teto planejado para o período.</p>
-        </div>
+        </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {budgets.map((b: Budget) => {
+          const { name, type } = getEntityInfo(b);
+          const actual = getActualAmount(b);
+          const percent = Math.min((actual / (b.amount || 1)) * 100, 100);
+          const isIncome = type === TransactionType.INCOME;
+          const isOver = !isIncome && actual > b.amount;
+          const budgetCurrency = b.currency || Currency.BRL;
+          const symbol = budgetCurrency === Currency.BRL ? 'R$' : '€';
+
+          return (
+            <div key={b.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex items-center gap-3 flex-1">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${b.entityType === 'category' ? 'bg-indigo-50 text-indigo-500' : 'bg-emerald-50 text-emerald-500'}`}>
+                    {b.entityType === 'category' ? <Tag className="w-5 h-5" /> : <Briefcase className="w-5 h-5" />}
+                  </div>
+                  <div className="flex-1">
+                    <p className="font-bold text-slate-900 text-sm">{name}</p>
+                    <p className="text-xs text-slate-400">{isIncome ? 'Meta de Receita' : 'Limite de Gasto'}</p>
+                  </div>
+                </div>
+                <span className={`text-xs font-bold px-2 py-1 rounded-lg ${budgetCurrency === Currency.BRL ? 'bg-emerald-50 text-emerald-600' : 'bg-blue-50 text-blue-600'}`}>
+                  {budgetCurrency}
+                </span>
+              </div>
+              
+              <div className="space-y-3 mb-3">
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Planejado:</span>
+                  <span className="font-bold text-slate-900">{symbol} {b.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}</span>
+                </div>
+                <div className="flex justify-between text-sm">
+                  <span className="text-slate-600">Realizado:</span>
+                  <span className={`font-bold ${isOver ? 'text-rose-600' : (isIncome ? 'text-emerald-600' : 'text-slate-900')}`}>
+                    {symbol} {actual.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                    {isOver && <span className="ml-2 text-xs text-rose-500">⚠️ Excedido</span>}
+                  </span>
+                </div>
+              </div>
+
+              <div className="space-y-2 mb-3">
+                <div className="flex justify-between text-xs font-bold text-slate-400">
+                  <span>Progresso</span>
+                  <span>{percent.toFixed(0)}%</span>
+                </div>
+                <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
+                  <div 
+                    className={`h-full transition-all duration-1000 ${isIncome ? 'bg-emerald-500' : (isOver ? 'bg-rose-500' : 'bg-indigo-500')}`}
+                    style={{ width: `${percent}%` }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button 
+                  onClick={() => startEditing(b)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 text-indigo-600 bg-indigo-50 rounded-xl font-medium text-sm"
+                >
+                  <Edit2 className="w-4 h-4" /> Editar
+                </button>
+                <button 
+                  onClick={() => deleteBudget(b.id)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 text-rose-600 bg-rose-50 rounded-xl font-medium text-sm"
+                >
+                  <Trash2 className="w-4 h-4" /> Excluir
+                </button>
+              </div>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

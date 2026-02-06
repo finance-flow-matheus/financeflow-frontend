@@ -184,7 +184,8 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
         </form>
       )}
 
-      <div className="bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
+      {/* Desktop Table */}
+      <div className="hidden md:block bg-white rounded-3xl shadow-sm border border-slate-100 overflow-hidden">
         <table className="w-full text-left">
           <thead className="bg-slate-50 text-slate-500 text-xs font-bold uppercase tracking-widest border-b border-slate-100">
             <tr>
@@ -256,6 +257,59 @@ export const TransactionsView: React.FC<{ data: any }> = ({ data }) => {
             )}
           </tbody>
         </table>
+      </div>
+
+      {/* Mobile Cards */}
+      <div className="md:hidden space-y-3">
+        {transactions.length > 0 ? transactions.map((t: any) => {
+          const acc = accounts.find((a: any) => a.id === t.accountId);
+          const cat = categories.find((c: any) => c.id === t.categoryId);
+          return (
+            <div key={t.id} className="bg-white rounded-2xl shadow-sm border border-slate-100 p-4">
+              <div className="flex items-start justify-between mb-3">
+                <div className="flex-1">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="font-bold text-slate-900">{t.description}</span>
+                    {t.isFixed && <Repeat className="w-3.5 h-3.5 text-indigo-400" />}
+                  </div>
+                  <div className="text-xs text-slate-500">{new Date(t.date).toLocaleDateString('pt-BR')}</div>
+                </div>
+                <div className={`text-lg font-bold ${t.type === TransactionType.INCOME ? 'text-emerald-600' : 'text-rose-600'}`}>
+                  <div className="flex items-center gap-1">
+                    {t.type === TransactionType.INCOME ? <ArrowUpRight className="w-4 h-4" /> : <ArrowDownRight className="w-4 h-4" />}
+                    {acc?.currency === Currency.BRL ? 'R$' : '€'} {t.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2 })}
+                  </div>
+                </div>
+              </div>
+              <div className="flex items-center gap-2 text-xs text-slate-600 mb-3">
+                <span className="px-2 py-1 bg-slate-100 rounded-lg font-medium">{cat?.name}</span>
+                <span>•</span>
+                <span>{acc?.name}</span>
+              </div>
+              {t.incomeSourceId && (
+                <div className="text-xs text-slate-400 mb-3">Fonte: {incomeSources.find((s: any) => s.id === t.incomeSourceId)?.name}</div>
+              )}
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button 
+                  onClick={() => startEditing(t)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 text-indigo-600 bg-indigo-50 rounded-xl font-medium text-sm"
+                >
+                  <Edit2 className="w-4 h-4" /> Editar
+                </button>
+                <button 
+                  onClick={() => deleteTransaction(t.id)}
+                  className="flex-1 flex items-center justify-center gap-2 py-2 text-rose-600 bg-rose-50 rounded-xl font-medium text-sm"
+                >
+                  <Trash2 className="w-4 h-4" /> Excluir
+                </button>
+              </div>
+            </div>
+          );
+        }) : (
+          <div className="bg-white rounded-2xl shadow-sm border border-slate-100 p-12 text-center text-slate-400 italic">
+            Nenhum lançamento encontrado.
+          </div>
+        )}
       </div>
     </div>
   );
